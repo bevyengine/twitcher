@@ -72,7 +72,12 @@
         {% for metric in metrics -%}
         <a href="#{{metric}}" id="{{metric}}">{{metric}}</a>
         <div>
-            <img src="graphs/{{ metric }}.svg" alt="{{ metric }} graph" />
+            <img
+                src="graphs/{{ metric }}.svg"
+                alt="{{ metric }} graph"
+                width="1536"
+                height="512"
+            />
         </div>
         {% endfor %}
     </body>
