@@ -4,6 +4,7 @@ pub mod binary_size;
 pub mod compile_time;
 pub mod crate_compile_time;
 pub mod stats;
+pub mod wasm_binary_size;
 
 pub trait Metrics {
     fn prepare(&self);

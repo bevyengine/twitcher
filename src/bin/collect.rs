@@ -11,6 +11,7 @@ use strum::{EnumIter, IntoEnumIterator};
 use twitcher::{
     Metrics, binary_size, compile_time, crate_compile_time,
     stats::{Host, Rust, Stats},
+    wasm_binary_size,
 };
 use xshell::{Shell, cmd};
 
@@ -39,6 +40,10 @@ enum Commands {
         #[arg(short, long, default_value = "breakout")]
         example: String,
     },
+    WasmBinarySize {
+        #[arg(short, long, default_value = "breakout")]
+        example: String,
+    },
     CompileTime {
         #[arg(short, long, default_value = "breakout")]
         example: String,
@@ -53,6 +58,9 @@ impl Commands {
         match self {
             Commands::BinarySize { example } => {
                 vec![Box::new(binary_size::BinarySize::on(example))]
+            }
+            Commands::WasmBinarySize { example } => {
+                vec![Box::new(wasm_binary_size::WasmBinarySize::on(example))]
             }
             Commands::CompileTime { example } => {
                 vec![
