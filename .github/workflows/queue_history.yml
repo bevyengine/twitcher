@@ -65,6 +65,7 @@ jobs:
               fi
           done
           echo "Added $i commits over the last 100"
+          echo "ADDED=$i" >> "$GITHUB_OUTPUT"
 
       - name: Commit
         if: steps.queue.outputs.ADDED > 0
