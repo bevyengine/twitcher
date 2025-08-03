@@ -40,7 +40,7 @@ jobs:
           repository: "bevyengine/bevy"
           ref: "main"
           path: "bevy"
-          fetch-depth: 600
+          fetch-depth: 100
       - uses: actions/checkout@v4
         with:
           ref: "queue"
@@ -53,31 +53,18 @@ jobs:
         id: queue
         run: |
           cd bevy
-          added=0
-          while [ $added -lt 5 ]
+          i=0
+          for commit in `git log --no-abbrev-commit --pretty=oneline | cut -d ' ' -f 1 | head -n 100`
           do
-              for step in `seq 1 6`
-              do
-                  count=$((step * 100))
-                  i=0
-                  for commit in `git log --no-abbrev-commit --pretty=oneline | cut -d ' ' -f 1 | head -n $count`
-                  do
-                      if find ../results/ | grep $commit 1> /dev/null 2>&1
-                      then
-                          :
-                      else
-                          if [ $((RANDOM % (step * 10))) -eq 0 ]
-                          then
-                              i=$((i + 1))
-                              touch ../queue/$commit
-                          fi
-                      fi
-                  done
-                  added=$((added + i))
-                  echo "Added $i commits over the last $count"
-              done
+              if find ../results/ | grep $commit 1> /dev/null 2>&1
+              then
+                  :
+              else
+                  i=$((i + 1))
+                  touch ../queue/$commit
+              fi
           done
-          echo "ADDED=$added" >> "$GITHUB_OUTPUT"
+          echo "Added $i commits over the last 100"
 
       - name: Commit
         if: steps.queue.outputs.ADDED > 0
