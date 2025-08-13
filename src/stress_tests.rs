@@ -101,10 +101,12 @@ impl Metrics for StressTest {
         let start = Instant::now();
         let output = cmd.output().unwrap();
         let fpss = output
-            .stderr
+            .stdout
             .lines()
+            .chain(output.stderr.lines())
             .map_while(|line| line.ok())
             .filter(|line| line.contains("fps"))
+            .filter(|line| line.contains("avg"))
             .map(|line| line.split("fps").nth(1).unwrap().to_string())
             .map(|line| line.split("(").nth(0).unwrap().to_string())
             .map(|line| line.split(":").nth(1).unwrap().to_string())
