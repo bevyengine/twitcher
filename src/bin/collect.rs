@@ -104,7 +104,7 @@ impl Commands {
                                 ("benchmark".to_string(), None),
                                 ("mode".to_string(), Some("mesh2d".to_string())),
                             ],
-                            1000,
+                            2000,
                         )),
                         Box::new(stress_tests::StressTest::on(
                             "many_animated_sprites".to_string(),
@@ -114,7 +114,7 @@ impl Commands {
                         Box::new(stress_tests::StressTest::on(
                             "many_buttons".to_string(),
                             vec![],
-                            1000,
+                            2000,
                         )),
                         Box::new(stress_tests::StressTest::on(
                             "many_cubes".to_string(),
@@ -139,7 +139,7 @@ impl Commands {
                         Box::new(stress_tests::StressTest::on(
                             "many_gradients".to_string(),
                             vec![],
-                            1000,
+                            2000,
                         )),
                         Box::new(stress_tests::StressTest::on(
                             "many_lights".to_string(),

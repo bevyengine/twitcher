@@ -2,6 +2,7 @@ use std::{
     collections::HashMap,
     io::{BufRead, Write},
     path::{Path, PathBuf},
+    time::Instant,
 };
 
 use xshell::{Shell, cmd};
@@ -84,7 +85,6 @@ impl Metrics for StressTest {
         let parameters = self
             .parameters
             .iter()
-            // .flat_map(|(p, v)| [format!("--{}", p), v.clone()])
             .flat_map(|(p, v)| {
                 if let Some(v) = v {
                     vec![format!("--{}", p), v.clone()]
@@ -96,8 +96,9 @@ impl Metrics for StressTest {
         let stress_tests = self.stress_test.clone();
         let cmd = cmd!(
             sh,
-            "cargo run --release --features bevy_ci_testing --example {stress_tests} -- {parameters...}"
+            "xvfb-run cargo run --release --features bevy_ci_testing --example {stress_tests} -- {parameters...}"
         );
+        let start = Instant::now();
         let output = cmd.output().unwrap();
         let fpss = output
             .stderr
@@ -132,8 +133,12 @@ impl Metrics for StressTest {
             format!("{key}.std_dev"),
             (statistical::standard_deviation(&fpss, None) * 1000.0) as u64,
         );
+        results.insert(
+            format!("{key}.duration"),
+            start.elapsed().as_millis() as u64,
+        );
+        results.insert(format!("{key}.frames"), self.nb_frames as u64);
 
-        // .collect()
         results
     }
 }
