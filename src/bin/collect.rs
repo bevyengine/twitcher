@@ -11,7 +11,7 @@ use strum::{EnumIter, IntoEnumIterator};
 use twitcher::{
     Metrics, binary_size, compile_time, crate_compile_time,
     stats::{Host, Rust, Stats},
-    wasm_binary_size,
+    stress_tests, wasm_binary_size,
 };
 use xshell::{Shell, cmd};
 
@@ -49,6 +49,14 @@ enum Commands {
         example: String,
     },
     CrateCompileTime,
+    StressTest {
+        #[arg(short, long)]
+        stress_test: String,
+        #[arg(short, long)]
+        parameters: String,
+        #[arg(short, long)]
+        nb_frames: u32,
+    },
     All,
 }
 
@@ -70,6 +78,110 @@ impl Commands {
             }
             Commands::CrateCompileTime => {
                 vec![Box::new(crate_compile_time::CrateCompileTime::on(16))]
+            }
+            Commands::StressTest {
+                stress_test,
+                parameters,
+                nb_frames,
+            } => {
+                if stress_test == "" {
+                    vec![
+                        Box::new(stress_tests::StressTest::on(
+                            "bevymark".to_string(),
+                            vec![
+                                ("waves".to_string(), Some("60".to_string())),
+                                ("per-wave".to_string(), Some("500".to_string())),
+                                ("benchmark".to_string(), None),
+                                ("mode".to_string(), Some("sprite".to_string())),
+                            ],
+                            4000,
+                        )),
+                        Box::new(stress_tests::StressTest::on(
+                            "bevymark".to_string(),
+                            vec![
+                                ("waves".to_string(), Some("60".to_string())),
+                                ("per-wave".to_string(), Some("500".to_string())),
+                                ("benchmark".to_string(), None),
+                                ("mode".to_string(), Some("mesh2d".to_string())),
+                            ],
+                            1000,
+                        )),
+                        Box::new(stress_tests::StressTest::on(
+                            "many_animated_sprites".to_string(),
+                            vec![],
+                            5000,
+                        )),
+                        Box::new(stress_tests::StressTest::on(
+                            "many_buttons".to_string(),
+                            vec![],
+                            1000,
+                        )),
+                        Box::new(stress_tests::StressTest::on(
+                            "many_cubes".to_string(),
+                            vec![("benchmark".to_string(), None)],
+                            4000,
+                        )),
+                        Box::new(stress_tests::StressTest::on(
+                            "many_foxes".to_string(),
+                            vec![],
+                            5000,
+                        )),
+                        Box::new(stress_tests::StressTest::on(
+                            "many_gizmos".to_string(),
+                            vec![],
+                            5000,
+                        )),
+                        Box::new(stress_tests::StressTest::on(
+                            "many_glyphs".to_string(),
+                            vec![],
+                            2000,
+                        )),
+                        Box::new(stress_tests::StressTest::on(
+                            "many_gradients".to_string(),
+                            vec![],
+                            1000,
+                        )),
+                        Box::new(stress_tests::StressTest::on(
+                            "many_lights".to_string(),
+                            vec![],
+                            2000,
+                        )),
+                        Box::new(stress_tests::StressTest::on(
+                            "many_materials".to_string(),
+                            vec![],
+                            5000,
+                        )),
+                        Box::new(stress_tests::StressTest::on(
+                            "many_sprites".to_string(),
+                            vec![],
+                            6000,
+                        )),
+                        Box::new(stress_tests::StressTest::on(
+                            "many_text2d".to_string(),
+                            vec![],
+                            6000,
+                        )),
+                    ]
+                } else {
+                    let parameters: Vec<String> =
+                        parameters.split(' ').map(|s| s.to_string()).collect();
+                    let parameters = parameters
+                        .chunks(2)
+                        .filter(|p| p.len() == 2)
+                        .map(|p| {
+                            (
+                                p[0].clone(),
+                                if p[1] == "" { None } else { Some(p[1].clone()) },
+                            )
+                        })
+                        .collect();
+
+                    vec![Box::new(stress_tests::StressTest::on(
+                        stress_test,
+                        parameters,
+                        nb_frames,
+                    ))]
+                }
             }
             Commands::All => {
                 if recur {
