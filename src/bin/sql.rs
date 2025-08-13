@@ -16,25 +16,29 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .collect();
 
     let keys: HashSet<_> = stats.iter().flat_map(|stat| stat.metrics.keys()).collect();
-    for metric in keys {
-        let values = stats
-            .iter()
-            .flat_map(|stat| {
-                stat.metrics.get(metric).map(|value| {
-                    (
-                        chrono::DateTime::from_timestamp_millis(stat.commit_timestamp as i64)
-                            .unwrap(),
-                        stat.commit.clone(),
-                        *value,
-                    )
+    let values = keys
+        .into_iter()
+        .flat_map(|metric| {
+            stats
+                .iter()
+                .flat_map(|stat| {
+                    stat.metrics.get(metric).map(|value| {
+                        (
+                            chrono::DateTime::from_timestamp_millis(stat.commit_timestamp as i64)
+                                .unwrap(),
+                            stat.commit.clone(),
+                            *value,
+                        )
+                    })
                 })
-            })
-            .map(|(ts, commit, value)| format!("('{}', '{}', '{}', {})", ts, commit, metric, value))
-            .collect::<Vec<_>>();
-        values
-            .chunks(1000)
-            .for_each(|chunk| println!("insert into metrics values {};", chunk.join(",")));
-    }
+                .map(|(ts, commit, value)| {
+                    format!("('{}', '{}', '{}', {})", ts, commit, metric.clone(), value)
+                })
+        })
+        .collect::<Vec<_>>();
+    values
+        .chunks(1000)
+        .for_each(|chunk| println!("insert into metrics values {};", chunk.join(",")));
 
     Ok(())
 }
