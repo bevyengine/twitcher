@@ -4,6 +4,7 @@ use xshell::{Shell, cmd};
 
 use crate::Metrics;
 
+#[derive(Debug)]
 pub struct BinarySize {
     pub example_name: String,
 }

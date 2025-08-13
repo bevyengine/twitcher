@@ -10,6 +10,7 @@ use xshell::{Shell, cmd};
 
 use crate::Metrics;
 
+#[derive(Debug)]
 pub struct CrateCompileTime {
     pub nb_jobs: u32,
 }
@@ -88,7 +89,6 @@ impl Metrics for CrateCompileTime {
                 let durations: Vec<f64> = timings.iter().map(|timing| timing.duration).collect();
                 let rmeta_times: Vec<f64> =
                     timings.iter().map(|timing| timing.rmeta_time).collect();
-                statistical::mean(&durations);
                 vec![
                     (
                         format!("{key}.{crate_name}.mean"),

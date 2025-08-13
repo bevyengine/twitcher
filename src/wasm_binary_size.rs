@@ -7,6 +7,7 @@ use xshell::{Shell, cmd};
 
 use crate::Metrics;
 
+#[derive(Debug)]
 pub struct WasmBinarySize {
     pub example_name: String,
 }

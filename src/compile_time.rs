@@ -8,6 +8,7 @@ use xshell::{Shell, cmd};
 
 use crate::Metrics;
 
+#[derive(Debug)]
 pub struct CompileTime {
     pub example_name: String,
     pub nb_jobs: u32,
