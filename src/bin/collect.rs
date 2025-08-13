@@ -84,7 +84,7 @@ impl Commands {
                 parameters,
                 nb_frames,
             } => {
-                if stress_test == "" {
+                if stress_test.is_empty() {
                     vec![
                         Box::new(stress_tests::StressTest::on(
                             "bevymark".to_string(),
@@ -171,7 +171,11 @@ impl Commands {
                         .map(|p| {
                             (
                                 p[0].clone(),
-                                if p[1] == "" { None } else { Some(p[1].clone()) },
+                                if p[1].is_empty() {
+                                    None
+                                } else {
+                                    Some(p[1].clone())
+                                },
                             )
                         })
                         .collect();
@@ -263,15 +267,15 @@ fn main() {
         .trim()
         .to_string();
 
-    if cli.merge_results {
-        if let Ok(file) = File::open(output_prefix.join("stats.json")) {
-            let previous_stats: Result<Stats, _> = serde_json::from_reader(file);
-            if let Ok(mut previous_stats) = previous_stats {
-                for (key, value) in metrics {
-                    previous_stats.metrics.insert(key, value);
-                }
-                metrics = previous_stats.metrics;
+    if cli.merge_results
+        && let Ok(file) = File::open(output_prefix.join("stats.json"))
+    {
+        let previous_stats: Result<Stats, _> = serde_json::from_reader(file);
+        if let Ok(mut previous_stats) = previous_stats {
+            for (key, value) in metrics {
+                previous_stats.metrics.insert(key, value);
             }
+            metrics = previous_stats.metrics;
         }
     }
 

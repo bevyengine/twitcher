@@ -102,7 +102,7 @@ impl Metrics for StressTest {
         let fpss = output
             .stderr
             .lines()
-            .filter_map(|line| line.ok())
+            .map_while(|line| line.ok())
             .filter(|line| line.contains("fps"))
             .map(|line| line.split("fps").nth(1).unwrap().to_string())
             .map(|line| line.split("(").nth(0).unwrap().to_string())
