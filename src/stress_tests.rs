@@ -34,12 +34,11 @@ impl Metrics for StressTest {
     fn prepare(&self) {
         let sh = Shell::new().unwrap();
         let stress_tests = self.stress_test.clone();
-        cmd!(
+        let _ = cmd!(
             sh,
             "cargo build --release --features bevy_ci_testing --example {stress_tests}"
         )
-        .run()
-        .unwrap();
+        .run();
     }
 
     fn artifacts(&self) -> HashMap<String, PathBuf> {
@@ -99,7 +98,12 @@ impl Metrics for StressTest {
             "xvfb-run cargo run --release --features bevy_ci_testing --example {stress_tests} -- {parameters...}"
         );
         let start = Instant::now();
-        let output = cmd.output().unwrap();
+        let mut results = HashMap::new();
+
+        let Ok(output) = cmd.output() else {
+            // ignore failure due to a missing stress test
+            return results;
+        };
         let fpss = output
             .stdout
             .lines()
@@ -114,7 +118,6 @@ impl Metrics for StressTest {
             .map(|line| line.parse::<f32>().unwrap())
             .collect::<Vec<_>>();
 
-        let mut results = HashMap::new();
         results.insert(
             format!("{key}.mean"),
             (statistical::mean(&fpss) * 1000.0) as u64,
