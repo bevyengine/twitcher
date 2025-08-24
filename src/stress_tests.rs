@@ -34,12 +34,11 @@ impl Metrics for StressTest {
     fn prepare(&self) {
         let sh = Shell::new().unwrap();
         let stress_tests = self.stress_test.clone();
-        cmd!(
+        let _ = cmd!(
             sh,
             "cargo build --release --features bevy_ci_testing --example {stress_tests}"
         )
-        .run()
-        .unwrap();
+        .run();
     }
 
     fn artifacts(&self) -> HashMap<String, PathBuf> {
@@ -98,8 +97,14 @@ impl Metrics for StressTest {
             sh,
             "xvfb-run cargo run --release --features bevy_ci_testing --example {stress_tests} -- {parameters...}"
         );
+        let mut results = HashMap::new();
+
         let start = Instant::now();
-        let output = cmd.output().unwrap();
+        let Ok(output) = cmd.output() else {
+            // ignore failure due to a missing stress test
+            return results;
+        };
+        let elapsed = start.elapsed();
         let fpss = output
             .stdout
             .lines()
@@ -114,7 +119,6 @@ impl Metrics for StressTest {
             .map(|line| line.parse::<f32>().unwrap())
             .collect::<Vec<_>>();
 
-        let mut results = HashMap::new();
         results.insert(
             format!("{key}.mean"),
             (statistical::mean(&fpss) * 1000.0) as u64,
@@ -135,10 +139,7 @@ impl Metrics for StressTest {
             format!("{key}.std_dev"),
             (statistical::standard_deviation(&fpss, None) * 1000.0) as u64,
         );
-        results.insert(
-            format!("{key}.duration"),
-            start.elapsed().as_millis() as u64,
-        );
+        results.insert(format!("{key}.duration"), elapsed.as_millis() as u64);
         results.insert(format!("{key}.frames"), self.nb_frames as u64);
 
         results
