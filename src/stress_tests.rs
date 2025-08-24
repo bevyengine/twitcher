@@ -104,7 +104,10 @@ impl Metrics for StressTest {
         );
         let mut results = HashMap::new();
 
-        // Clear channel
+        // Wait for the monitoring threads to start
+        let _ = cpu.recv();
+        let _ = gpu.recv();
+        // Clear channels
         while cpu.try_recv().is_ok() {}
         while gpu.try_recv().is_ok() {}
 
