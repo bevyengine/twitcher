@@ -124,6 +124,7 @@ impl Metrics for StressTest {
         }
         // remove first element as that was during startup
         cpu_usage.remove(0);
+        cpu_usage.remove(0);
         std::mem::drop(cpu);
         let mut gpu_usage = vec![];
         while let Ok(v) = gpu.try_recv() {
@@ -131,8 +132,10 @@ impl Metrics for StressTest {
         }
         // remove first element as that was during startup
         gpu_usage.remove(0);
+        gpu_usage.remove(0);
         std::mem::drop(gpu);
-        println!("{:?}", gpu_usage);
+        let gpu_memory = gpu_usage.iter().map(|v| v.mem as f32).collect::<Vec<_>>();
+        let gpu_usage = gpu_usage.iter().map(|v| v.sm as f32).collect::<Vec<_>>();
 
         let fpss = output
             .stdout
@@ -187,6 +190,54 @@ impl Metrics for StressTest {
         results.insert(
             format!("{key}.cpu_usage.std_dev"),
             (statistical::standard_deviation(&cpu_usage, None) * 1000.0) as u64,
+        );
+        results.insert(
+            format!("{key}.gpu_usage.mean"),
+            (statistical::mean(&gpu_usage) * 1000.0) as u64,
+        );
+        results.insert(
+            format!("{key}.gpu_usage.median"),
+            (statistical::median(&gpu_usage) * 1000.0) as u64,
+        );
+        results.insert(
+            format!("{key}.gpu_usage.min"),
+            gpu_usage.iter().map(|d| (d * 1000.0) as u64).min().unwrap(),
+        );
+        results.insert(
+            format!("{key}.gpu_usage.max"),
+            gpu_usage.iter().map(|d| (d * 1000.0) as u64).max().unwrap(),
+        );
+        results.insert(
+            format!("{key}.gpu_usage.std_dev"),
+            (statistical::standard_deviation(&gpu_usage, None) * 1000.0) as u64,
+        );
+        results.insert(
+            format!("{key}.gpu_memory.mean"),
+            (statistical::mean(&gpu_memory) * 1000.0) as u64,
+        );
+        results.insert(
+            format!("{key}.gpu_memory.median"),
+            (statistical::median(&gpu_memory) * 1000.0) as u64,
+        );
+        results.insert(
+            format!("{key}.gpu_memory.min"),
+            gpu_memory
+                .iter()
+                .map(|d| (d * 1000.0) as u64)
+                .min()
+                .unwrap(),
+        );
+        results.insert(
+            format!("{key}.gpu_memory.max"),
+            gpu_memory
+                .iter()
+                .map(|d| (d * 1000.0) as u64)
+                .max()
+                .unwrap(),
+        );
+        results.insert(
+            format!("{key}.gpu_memory.std_dev"),
+            (statistical::standard_deviation(&gpu_memory, None) * 1000.0) as u64,
         );
         results.insert(format!("{key}.duration"), elapsed.as_millis() as u64);
         results.insert(format!("{key}.frames"), self.nb_frames as u64);
