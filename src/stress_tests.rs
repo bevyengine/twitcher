@@ -2,9 +2,11 @@ use std::{
     collections::HashMap,
     io::{BufRead, Write},
     path::{Path, PathBuf},
-    time::Instant,
+    thread,
+    time::{Duration, Instant},
 };
 
+use crossbeam::channel::Receiver;
 use xshell::{Shell, cmd};
 
 use crate::Metrics;
@@ -61,6 +63,8 @@ impl Metrics for StressTest {
     }
 
     fn collect(&self) -> HashMap<String, u64> {
+        let cpu = cpu_usage();
+
         let key = format!(
             "stress-test-fps.{}.{}",
             self.stress_test,
@@ -99,12 +103,24 @@ impl Metrics for StressTest {
         );
         let mut results = HashMap::new();
 
+        // Clear channel
+        while cpu.try_recv().is_ok() {}
+
         let start = Instant::now();
         let Ok(output) = cmd.output() else {
             // ignore failure due to a missing stress test
             return results;
         };
         let elapsed = start.elapsed();
+
+        let mut cpu_usage = vec![];
+        while let Ok(v) = cpu.try_recv() {
+            cpu_usage.push(v);
+        }
+        // remove first element as that was during startup
+        cpu_usage.remove(0);
+        std::mem::drop(cpu);
+
         let fpss = output
             .stdout
             .lines()
@@ -139,9 +155,48 @@ impl Metrics for StressTest {
             format!("{key}.std_dev"),
             (statistical::standard_deviation(&fpss, None) * 1000.0) as u64,
         );
+        results.insert(
+            format!("{key}.cpu_usage.mean"),
+            (statistical::mean(&cpu_usage) * 1000.0) as u64,
+        );
+        results.insert(
+            format!("{key}.cpu_usage.median"),
+            (statistical::median(&cpu_usage) * 1000.0) as u64,
+        );
+        results.insert(
+            format!("{key}.cpu_usage.min"),
+            cpu_usage.iter().map(|d| (d * 1000.0) as u64).min().unwrap(),
+        );
+        results.insert(
+            format!("{key}.cpu_usage.max"),
+            cpu_usage.iter().map(|d| (d * 1000.0) as u64).max().unwrap(),
+        );
+        results.insert(
+            format!("{key}.cpu_usage.std_dev"),
+            (statistical::standard_deviation(&cpu_usage, None) * 1000.0) as u64,
+        );
         results.insert(format!("{key}.duration"), elapsed.as_millis() as u64);
         results.insert(format!("{key}.frames"), self.nb_frames as u64);
 
         results
     }
+}
+
+fn cpu_usage() -> Receiver<f32> {
+    let (tx, rx) = crossbeam::channel::unbounded();
+
+    thread::spawn(move || {
+        let mut sys = sysinfo::System::new();
+        let delay = sysinfo::MINIMUM_CPU_UPDATE_INTERVAL.max(Duration::from_secs(1));
+
+        loop {
+            sys.refresh_cpu_usage();
+            if tx.send(sys.global_cpu_usage()).is_err() {
+                break;
+            }
+            std::thread::sleep(delay);
+        }
+    });
+
+    rx
 }
