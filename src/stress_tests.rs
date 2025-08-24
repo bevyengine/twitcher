@@ -64,6 +64,7 @@ impl Metrics for StressTest {
 
     fn collect(&self) -> HashMap<String, u64> {
         let cpu = cpu_usage();
+        let gpu = gpu_usage();
 
         let key = format!(
             "stress-test-fps.{}.{}",
@@ -105,6 +106,7 @@ impl Metrics for StressTest {
 
         // Clear channel
         while cpu.try_recv().is_ok() {}
+        while gpu.try_recv().is_ok() {}
 
         let start = Instant::now();
         let Ok(output) = cmd.output() else {
@@ -120,6 +122,14 @@ impl Metrics for StressTest {
         // remove first element as that was during startup
         cpu_usage.remove(0);
         std::mem::drop(cpu);
+        let mut gpu_usage = vec![];
+        while let Ok(v) = gpu.try_recv() {
+            gpu_usage.push(v);
+        }
+        // remove first element as that was during startup
+        gpu_usage.remove(0);
+        std::mem::drop(gpu);
+        println!("{:?}", gpu_usage);
 
         let fpss = output
             .stdout
@@ -192,6 +202,57 @@ fn cpu_usage() -> Receiver<f32> {
         loop {
             sys.refresh_cpu_usage();
             if tx.send(sys.global_cpu_usage()).is_err() {
+                break;
+            }
+            std::thread::sleep(delay);
+        }
+    });
+
+    rx
+}
+
+#[derive(Debug)]
+struct GpuUsage {
+    sm: u32,
+    mem: u32,
+    enc: u32,
+    dec: u32,
+}
+
+fn gpu_usage() -> Receiver<GpuUsage> {
+    let (tx, rx) = crossbeam::channel::unbounded();
+    use nvml_wrapper::Nvml;
+
+    thread::spawn(move || {
+        let Ok(nvml) = Nvml::init() else {
+            println!("Couldn't load nvidia driver");
+            return;
+        };
+        let device = nvml.device_by_index(0).unwrap();
+        let delay = Duration::from_secs(1);
+
+        let mut timestamp = None;
+
+        loop {
+            let Ok(processes) = device.process_utilization_stats(timestamp) else {
+                break;
+            };
+
+            println!("-");
+            for process in processes {
+                println!("{:?}", process);
+                timestamp = Some(process.timestamp);
+            }
+
+            if tx
+                .send(GpuUsage {
+                    sm: 0,
+                    mem: 0,
+                    enc: 0,
+                    dec: 0,
+                })
+                .is_err()
+            {
                 break;
             }
             std::thread::sleep(delay);
