@@ -3,7 +3,7 @@ use std::{
     fs::File,
     io::BufWriter,
     path::Path,
-    time::{SystemTime, UNIX_EPOCH},
+    time::{Duration, SystemTime, UNIX_EPOCH},
 };
 
 use clap::{Parser, Subcommand};
@@ -240,7 +240,9 @@ fn main() {
                 std::fs::create_dir_all(&target_folder).unwrap();
                 std::fs::copy(file_name.clone(), target_folder.join(file_name)).unwrap();
             }
-            m.collect()
+            let metrics = m.collect();
+            std::thread::sleep(Duration::from_secs(5));
+            metrics
         })
         .collect();
 
