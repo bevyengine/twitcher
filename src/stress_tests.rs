@@ -238,6 +238,7 @@ fn gpu_usage() -> Receiver<GpuUsage> {
 
         loop {
             let Ok(processes) = device.process_utilization_stats(timestamp) else {
+                println!("Couldn't get process utilization stats");
                 break;
             };
 
@@ -260,6 +261,12 @@ fn gpu_usage() -> Receiver<GpuUsage> {
             }
             std::thread::sleep(delay);
         }
+        let _ = tx.try_send(GpuUsage {
+            sm: 0,
+            mem: 0,
+            enc: 0,
+            dec: 0,
+        });
     });
 
     rx
