@@ -218,13 +218,11 @@ fn cpu_usage() -> Receiver<f32> {
 struct GpuUsage {
     sm: u32,
     mem: u32,
-    enc: u32,
-    dec: u32,
 }
 
 fn gpu_usage() -> Receiver<GpuUsage> {
     let (tx, rx) = crossbeam::channel::unbounded();
-    use nvml_wrapper::Nvml;
+    use nvml_wrapper::{Nvml, error::NvmlError};
 
     thread::spawn(move || {
         let Ok(nvml) = Nvml::init() else {
@@ -236,24 +234,28 @@ fn gpu_usage() -> Receiver<GpuUsage> {
 
         let mut timestamp = None;
 
+        let _ = tx.try_send(GpuUsage { sm: 0, mem: 0 });
+
         loop {
-            let Ok(processes) = device.process_utilization_stats(timestamp) else {
-                println!("Couldn't get process utilization stats");
-                break;
+            let processes = match device.process_utilization_stats(timestamp) {
+                Ok(processes) => processes,
+                Err(NvmlError::NotFound) => {
+                    // No process using the GPU found
+                    continue;
+                }
+                Err(_) => {
+                    println!("Couldn't get process utilization stats");
+                    break;
+                }
             };
 
-            println!("-");
-            for process in processes {
-                println!("{:?}", process);
-                timestamp = Some(process.timestamp);
-            }
+            let process = &processes[0];
+            timestamp = Some(process.timestamp);
 
             if tx
                 .send(GpuUsage {
-                    sm: 0,
-                    mem: 0,
-                    enc: 0,
-                    dec: 0,
+                    sm: process.sm_util,
+                    mem: process.mem_util,
                 })
                 .is_err()
             {
@@ -261,12 +263,7 @@ fn gpu_usage() -> Receiver<GpuUsage> {
             }
             std::thread::sleep(delay);
         }
-        let _ = tx.try_send(GpuUsage {
-            sm: 0,
-            mem: 0,
-            enc: 0,
-            dec: 0,
-        });
+        let _ = tx.try_send(GpuUsage { sm: 0, mem: 0 });
     });
 
     rx
