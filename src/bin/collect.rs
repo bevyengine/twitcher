@@ -139,7 +139,7 @@ impl Commands {
                         Box::new(stress_tests::StressTest::on(
                             "many_gradients".to_string(),
                             vec![],
-                            5000,
+                            20000,
                         )),
                         Box::new(stress_tests::StressTest::on(
                             "many_lights".to_string(),
@@ -149,7 +149,7 @@ impl Commands {
                         Box::new(stress_tests::StressTest::on(
                             "many_materials".to_string(),
                             vec![],
-                            5000,
+                            20000,
                         )),
                         Box::new(stress_tests::StressTest::on(
                             "many_sprites".to_string(),
@@ -159,7 +159,7 @@ impl Commands {
                         Box::new(stress_tests::StressTest::on(
                             "many_text2d".to_string(),
                             vec![],
-                            5000,
+                            20000,
                         )),
                     ]
                 } else {
