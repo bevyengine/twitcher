@@ -22,12 +22,12 @@ impl BinarySize {
 }
 
 impl Metrics for BinarySize {
-    fn prepare(&self) {
+    fn prepare(&self) -> bool {
         let example = &self.example_name;
         let sh = Shell::new().unwrap();
         cmd!(sh, "cargo build --release --example {example}")
             .run()
-            .unwrap();
+            .is_ok()
     }
 
     fn collect(&self) -> HashMap<String, u64> {

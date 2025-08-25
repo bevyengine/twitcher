@@ -28,7 +28,7 @@ impl CompileTime {
 }
 
 impl Metrics for CompileTime {
-    fn prepare(&self) {
+    fn prepare(&self) -> bool {
         let command = format!(
             "cargo build --jobs {} --release --example {}",
             self.nb_jobs, self.example_name
@@ -40,7 +40,7 @@ impl Metrics for CompileTime {
             "hyperfine --export-json {json} --prepare 'cargo clean; sleep 2' {command}"
         )
         .run()
-        .unwrap();
+        .is_ok()
     }
 
     fn artifacts(&self) -> HashMap<String, PathBuf> {

@@ -25,7 +25,7 @@ impl WasmBinarySize {
 }
 
 impl Metrics for WasmBinarySize {
-    fn prepare(&self) {
+    fn prepare(&self) -> bool {
         let example = &self.example_name;
         let sh = Shell::new().unwrap();
         cmd!(
@@ -33,7 +33,7 @@ impl Metrics for WasmBinarySize {
             "cargo run -p build-wasm-example -- --optimize-size {example}"
         )
         .run()
-        .unwrap();
+        .is_ok()
     }
 
     fn artifacts(&self) -> HashMap<String, PathBuf> {

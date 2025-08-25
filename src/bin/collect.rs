@@ -233,8 +233,8 @@ fn main() {
 
     let mut metrics: HashMap<String, u64> = metrics_to_run
         .iter()
+        .filter(|m| m.prepare())
         .flat_map(|m| {
-            m.prepare();
             for (save_as, file_name) in m.artifacts() {
                 let target_folder = output_prefix.join(save_as);
                 std::fs::create_dir_all(&target_folder).unwrap();
