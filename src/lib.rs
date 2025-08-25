@@ -8,7 +8,7 @@ pub mod stress_tests;
 pub mod wasm_binary_size;
 
 pub trait Metrics: std::fmt::Debug {
-    fn prepare(&self);
+    fn prepare(&self) -> bool;
     fn artifacts(&self) -> HashMap<String, PathBuf> {
         HashMap::new()
     }

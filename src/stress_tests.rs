@@ -33,14 +33,15 @@ impl StressTest {
 }
 
 impl Metrics for StressTest {
-    fn prepare(&self) {
+    fn prepare(&self) -> bool {
         let sh = Shell::new().unwrap();
         let stress_tests = self.stress_test.clone();
-        let _ = cmd!(
+        cmd!(
             sh,
             "cargo build --release --features bevy_ci_testing --example {stress_tests}"
         )
-        .run();
+        .run()
+        .is_ok()
     }
 
     fn artifacts(&self) -> HashMap<String, PathBuf> {
@@ -122,7 +123,7 @@ impl Metrics for StressTest {
         while let Ok(v) = cpu.try_recv() {
             cpu_usage.push(v);
         }
-        // remove first element as that was during startup
+        // remove first elements as that was during startup
         cpu_usage.remove(0);
         cpu_usage.remove(0);
         std::mem::drop(cpu);
@@ -130,7 +131,7 @@ impl Metrics for StressTest {
         while let Ok(v) = gpu.try_recv() {
             gpu_usage.push(v);
         }
-        // remove first element as that was during startup
+        // remove first elements as that was during startup
         gpu_usage.remove(0);
         gpu_usage.remove(0);
         std::mem::drop(gpu);
