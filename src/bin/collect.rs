@@ -9,7 +9,7 @@ use std::{
 use clap::{Parser, Subcommand};
 use strum::{EnumIter, IntoEnumIterator};
 use twitcher::{
-    Metrics, binary_size, compile_time, crate_compile_time,
+    Metrics, benchmarks, binary_size, compile_time, crate_compile_time,
     stats::{Host, Rust, Stats},
     stress_tests, wasm_binary_size,
 };
@@ -57,6 +57,7 @@ enum Commands {
         #[arg(short, long)]
         nb_frames: u32,
     },
+    Benchmarks,
     All,
 }
 
@@ -186,6 +187,9 @@ impl Commands {
                         nb_frames,
                     ))]
                 }
+            }
+            Commands::Benchmarks => {
+                vec![Box::new(benchmarks::Benchmarks)]
             }
             Commands::All => {
                 if recur {
