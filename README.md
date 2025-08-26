@@ -5,7 +5,7 @@ Collect and monitor metrics about Bevy
 ## How It Works
 
 - Commits on which to collect metrics are pushed as files to the [`queue` branch](https://github.com/bevyengine/twitcher/tree/queue)
-  - A GitHub action will push new commits from the Bevy repositoty every hour
+  - A GitHub action will push new commits from the Bevy repository every hour
   - Additional commits can be pushed to collect metrics about history or more commits
 - Dedicated hardware checks out the queue branch and runs the metrics collection process
 - Results are pushed to the [`results` branch](https://github.com/bevyengine/twitcher/tree/results), and the commit finished is removed from the [`queue` branch](https://github.com/bevyengine/twitcher/tree/queue)

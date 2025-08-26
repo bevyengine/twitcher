@@ -24,7 +24,7 @@ impl CrateCompileTime {
 }
 
 impl Metrics for CrateCompileTime {
-    fn prepare(&self) {
+    fn prepare(&self) -> bool {
         let nb_jobs = format!("{}", self.nb_jobs);
         let sh = Shell::new().unwrap();
         cmd!(
@@ -62,6 +62,7 @@ impl Metrics for CrateCompileTime {
         let file = File::create(format!("crate-stats-{}.json", self.nb_jobs)).unwrap();
         let mut writer = BufWriter::new(file);
         serde_json::to_writer(&mut writer, &timings).unwrap();
+        true
     }
 
     fn artifacts(&self) -> HashMap<String, PathBuf> {

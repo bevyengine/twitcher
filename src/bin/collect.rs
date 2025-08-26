@@ -3,7 +3,7 @@ use std::{
     fs::File,
     io::BufWriter,
     path::Path,
-    time::{SystemTime, UNIX_EPOCH},
+    time::{Duration, SystemTime, UNIX_EPOCH},
 };
 
 use clap::{Parser, Subcommand};
@@ -94,7 +94,7 @@ impl Commands {
                                 ("benchmark".to_string(), None),
                                 ("mode".to_string(), Some("sprite".to_string())),
                             ],
-                            4000,
+                            10000,
                         )),
                         Box::new(stress_tests::StressTest::on(
                             "bevymark".to_string(),
@@ -104,27 +104,27 @@ impl Commands {
                                 ("benchmark".to_string(), None),
                                 ("mode".to_string(), Some("mesh2d".to_string())),
                             ],
-                            1000,
+                            5000,
                         )),
                         Box::new(stress_tests::StressTest::on(
                             "many_animated_sprites".to_string(),
                             vec![],
-                            5000,
+                            30000,
                         )),
                         Box::new(stress_tests::StressTest::on(
                             "many_buttons".to_string(),
                             vec![],
-                            1000,
+                            5000,
                         )),
                         Box::new(stress_tests::StressTest::on(
                             "many_cubes".to_string(),
                             vec![("benchmark".to_string(), None)],
-                            4000,
+                            15000,
                         )),
                         Box::new(stress_tests::StressTest::on(
                             "many_foxes".to_string(),
                             vec![],
-                            5000,
+                            15000,
                         )),
                         Box::new(stress_tests::StressTest::on(
                             "many_gizmos".to_string(),
@@ -134,32 +134,32 @@ impl Commands {
                         Box::new(stress_tests::StressTest::on(
                             "many_glyphs".to_string(),
                             vec![],
-                            2000,
+                            10000,
                         )),
                         Box::new(stress_tests::StressTest::on(
                             "many_gradients".to_string(),
                             vec![],
-                            1000,
+                            20000,
                         )),
                         Box::new(stress_tests::StressTest::on(
                             "many_lights".to_string(),
                             vec![],
-                            2000,
+                            5000,
                         )),
                         Box::new(stress_tests::StressTest::on(
                             "many_materials".to_string(),
                             vec![],
-                            5000,
+                            20000,
                         )),
                         Box::new(stress_tests::StressTest::on(
                             "many_sprites".to_string(),
                             vec![],
-                            6000,
+                            30000,
                         )),
                         Box::new(stress_tests::StressTest::on(
                             "many_text2d".to_string(),
                             vec![],
-                            6000,
+                            20000,
                         )),
                     ]
                 } else {
@@ -233,14 +233,16 @@ fn main() {
 
     let mut metrics: HashMap<String, u64> = metrics_to_run
         .iter()
+        .filter(|m| m.prepare())
         .flat_map(|m| {
-            m.prepare();
             for (save_as, file_name) in m.artifacts() {
                 let target_folder = output_prefix.join(save_as);
                 std::fs::create_dir_all(&target_folder).unwrap();
                 std::fs::copy(file_name.clone(), target_folder.join(file_name)).unwrap();
             }
-            m.collect()
+            let metrics = m.collect();
+            std::thread::sleep(Duration::from_secs(5));
+            metrics
         })
         .collect();
 
