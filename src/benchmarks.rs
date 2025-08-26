@@ -14,7 +14,7 @@ use crate::Metrics;
 pub struct Benchmarks;
 
 impl Metrics for Benchmarks {
-    fn prepare(&self) {
+    fn prepare(&self) -> bool {
         let sh = Shell::new().unwrap();
         sh.change_dir("benches");
         cmd!(sh, "cargo clean").run().unwrap();
@@ -32,6 +32,7 @@ impl Metrics for Benchmarks {
         let file = File::create("benchmarks.json").unwrap();
         let mut writer = BufWriter::new(file);
         serde_json::to_writer(&mut writer, &benchmarks).unwrap();
+        true
     }
 
     fn artifacts(&self) -> HashMap<String, PathBuf> {
