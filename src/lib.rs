@@ -17,5 +17,5 @@ pub trait Metrics: std::fmt::Debug {
 }
 
 pub fn file_safe_metric_name(metric: &str) -> String {
-    metric.replace(':', "_").replace('/', "_")
+    metric.replace([':', '/'], "_")
 }
