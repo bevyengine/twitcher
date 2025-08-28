@@ -6,7 +6,10 @@ use std::{
 };
 
 use plotters::prelude::*;
-use twitcher::stats::{Stats, find_stats_files};
+use twitcher::{
+    file_safe_metric_name,
+    stats::{Stats, find_stats_files},
+};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     fs::create_dir_all("graphs").unwrap();
@@ -40,7 +43,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let min = data.iter().min_by_key(|d| d.2).unwrap().2;
         let max = data.iter().max_by_key(|d| d.2).unwrap().2;
 
-        let out = format!("graphs/{metric}.svg");
+        let out = format!("graphs/{}.svg", file_safe_metric_name(metric));
 
         let root = SVGBackend::new(&out, (1536, 512)).into_drawing_area();
         root.fill(&WHITE)?;
@@ -57,7 +60,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             .draw_series(LineSeries::new(data.iter().map(|x| (x.0, x.2)), BLUE))
             .unwrap();
 
-        root.present().expect("Unable to write result to file, please make sure 'plotters-doc-data' dir exists under current dir");
+        root.present().expect("Unable to write result to file");
         println!("Result has been saved to {out}");
     }
 

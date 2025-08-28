@@ -15,3 +15,7 @@ pub trait Metrics: std::fmt::Debug {
     }
     fn collect(&self) -> HashMap<String, u64>;
 }
+
+pub fn file_safe_metric_name(metric: &str) -> String {
+    metric.replace([':', '/'], "_")
+}

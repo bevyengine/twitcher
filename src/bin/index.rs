@@ -1,7 +1,10 @@
 use std::{collections::HashSet, fs::File, io::BufReader, path::Path};
 
 use tera::Tera;
-use twitcher::stats::{Stats, find_stats_files};
+use twitcher::{
+    file_safe_metric_name,
+    stats::{Stats, find_stats_files},
+};
 
 fn main() {
     let tera = Tera::new("templates/*").unwrap();
@@ -17,7 +20,11 @@ fn main() {
         })
         .collect();
 
-    let keys: HashSet<_> = stats.iter().flat_map(|stat| stat.metrics.keys()).collect();
+    let keys: HashSet<_> = stats
+        .iter()
+        .flat_map(|stat| stat.metrics.keys())
+        .map(|m| file_safe_metric_name(m))
+        .collect();
     let mut metrics: Vec<_> = keys.iter().collect();
     metrics.sort();
     context.insert("metrics", &metrics);
