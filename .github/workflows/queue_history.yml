@@ -5,6 +5,9 @@ on:
   schedule:
     - cron: "15 */3 * * *"
 
+env:
+  COMMIT_DEPTH: 500
+
 jobs:
   check-queue:
     name: Check Queue
@@ -40,7 +43,7 @@ jobs:
           repository: "bevyengine/bevy"
           ref: "main"
           path: "bevy"
-          fetch-depth: 100
+          fetch-depth: ${{ env.COMMIT_DEPTH }}
       - uses: actions/checkout@v4
         with:
           ref: "queue"
@@ -54,7 +57,8 @@ jobs:
         run: |
           cd bevy
           i=0
-          for commit in `git log --no-abbrev-commit --pretty=oneline | cut -d ' ' -f 1 | head -n 100`
+          max=3
+          for commit in `git log --no-abbrev-commit --pretty=oneline | sort | cut -d ' ' -f 1 | head -n ${{ env.COMMIT_DEPTH }}`
           do
               if find ../results/ | grep $commit 1> /dev/null 2>&1
               then
@@ -63,8 +67,11 @@ jobs:
                   i=$((i + 1))
                   touch ../queue/$commit
               fi
+              if [ $i -ge $max ]; then
+                  break
+              fi
           done
-          echo "Added $i commits over the last 100"
+          echo "Added $i commits"
           echo "ADDED=$i" >> "$GITHUB_OUTPUT"
 
       - name: Commit
@@ -75,5 +82,5 @@ jobs:
           git config user.email '<>'
 
           git add .
-          git commit -m "Queue historic commits"
+          git commit -m "Queue ${{ steps.queue.outputs.ADDED }} historic commits"
           git push
