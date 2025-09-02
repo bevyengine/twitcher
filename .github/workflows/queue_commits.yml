@@ -33,11 +33,13 @@ jobs:
           then
             echo "commit already queued"
             echo "ADDED=0" >> "$GITHUB_OUTPUT"
+            exit 0
           fi
           if find results/ | grep $gitref 1> /dev/null 2>&1
           then
             echo "commit already collected"
             echo "ADDED=0" >> "$GITHUB_OUTPUT"
+            exit 0
           fi
           cd queue
           touch $gitref
