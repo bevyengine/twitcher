@@ -50,7 +50,7 @@ jobs:
           git config user.email '<>'
 
           git add .
-          git commit -m "Queue ${{ steps.queue.outputs.ADDED }} historic commits"
+          git commit -m "Queued new commit"
           git push
 
   check-queue:
@@ -126,5 +126,5 @@ jobs:
           git config user.email '<>'
 
           git add .
-          git commit -m "Queue ${{ steps.queue.outputs.ADDED }} historic commits"
+          git commit -m "Queued ${{ steps.queue.outputs.ADDED }} history commits"
           git push
