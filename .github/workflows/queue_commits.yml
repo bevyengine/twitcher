@@ -1,17 +1,62 @@
-name: Queue Historic Commits From Bevy Main
+name: Queue Commits From Bevy Main
 
 on:
   workflow_dispatch:
   schedule:
-    - cron: "15 */3 * * *"
-
-env:
-  COMMIT_DEPTH: 500
+    - cron: "0 * * * *"
 
 jobs:
+  queue-latest-commit:
+    name: Queue Latest Commit
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout Bevy main branch
+        uses: actions/checkout@v4
+        with:
+          repository: "bevyengine/bevy"
+          ref: "main"
+      - uses: actions/checkout@v4
+        with:
+          ref: "queue"
+          path: "queue"
+      - uses: actions/checkout@v4
+        with:
+          ref: "results"
+          path: "results"
+      - name: Queue latest commit
+        id: queue
+        run: |
+          gitref=`git rev-parse HEAD`
+          if ls queue/$gitref 1> /dev/null 2>&1
+          then
+            echo "commit already queued"
+            echo "ADDED=0" >> "$GITHUB_OUTPUT"
+          fi
+          if find results/ | grep $gitref 1> /dev/null 2>&1
+          then
+            echo "commit already collected"
+            echo "ADDED=0" >> "$GITHUB_OUTPUT"
+          fi
+          cd queue
+          touch $gitref
+          echo "ADDED=1" >> "$GITHUB_OUTPUT"
+      - name: Commit
+        if: steps.queue.outputs.ADDED > 0
+        run: |
+          cd queue
+          git config user.name 'Workflow'
+          git config user.email '<>'
+
+          git add .
+          git commit -m "Queue ${{ steps.queue.outputs.ADDED }} historic commits"
+          git push
+
   check-queue:
     name: Check Queue
     runs-on: ubuntu-latest
+    needs: [queue-latest-commit]
     outputs:
       queue_is_empty: ${{ steps.check_queue.outputs.QUEUE_IS_EMPTY }}
     steps:
@@ -29,10 +74,10 @@ jobs:
             echo "QUEUE_IS_EMPTY=false" >> "$GITHUB_OUTPUT"
           fi
 
-  queue-commits:
+  queue-history-commits:
     needs: [check-queue]
     if: needs.check-queue.outputs.queue_is_empty == 'true'
-    name: Queue Commits
+    name: Queue History Commits
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -43,7 +88,7 @@ jobs:
           repository: "bevyengine/bevy"
           ref: "main"
           path: "bevy"
-          fetch-depth: ${{ env.COMMIT_DEPTH }}
+          fetch-depth: 500
       - uses: actions/checkout@v4
         with:
           ref: "queue"
@@ -52,13 +97,13 @@ jobs:
         with:
           ref: "results"
           path: "results"
-      - name: Queue historic commits
+      - name: Queue history commits
         id: queue
         run: |
           cd bevy
           i=0
           max=3
-          for commit in `git log --no-abbrev-commit --pretty=oneline | sort | cut -d ' ' -f 1 | head -n ${{ env.COMMIT_DEPTH }}`
+          for commit in `git log --no-abbrev-commit --pretty=oneline | sort | cut -d ' ' -f 1`
           do
               if find ../results/ | grep $commit 1> /dev/null 2>&1
               then
@@ -73,7 +118,6 @@ jobs:
           done
           echo "Added $i commits"
           echo "ADDED=$i" >> "$GITHUB_OUTPUT"
-
       - name: Commit
         if: steps.queue.outputs.ADDED > 0
         run: |
