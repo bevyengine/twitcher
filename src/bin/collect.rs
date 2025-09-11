@@ -58,6 +58,7 @@ enum Commands {
         nb_frames: u32,
     },
     Benchmarks,
+    LlvmLines,
     All,
 }
 
@@ -190,6 +191,9 @@ impl Commands {
             }
             Commands::Benchmarks => {
                 vec![Box::new(benchmarks::Benchmarks)]
+            }
+            Commands::LlvmLines => {
+                vec![Box::new(llvm_lines::LlvmLines)]
             }
             Commands::All => {
                 if recur {
