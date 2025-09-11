@@ -104,6 +104,7 @@ jobs:
         run: |
           cd bevy
           i=0
+          j=0
           max=3
           for commit in `git log --no-abbrev-commit --pretty=oneline | sort | cut -d ' ' -f 1`
           do
@@ -112,13 +113,13 @@ jobs:
                   :
               else
                   i=$((i + 1))
-                  touch ../queue/$commit
-              fi
-              if [ $i -ge $max ]; then
-                  break
-              fi
+                  j=$((j + 1))
+                  if [ $i -le $max ]; then
+                      touch ../queue/$commit
+                  fi
+                fi
           done
-          echo "Added $i commits"
+          echo "Added $i commits out of $j missing commits"
           echo "ADDED=$i" >> "$GITHUB_OUTPUT"
       - name: Commit
         if: steps.queue.outputs.ADDED > 0
