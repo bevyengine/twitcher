@@ -32,7 +32,7 @@ impl Metrics for LlvmLines {
 
         out.lines()
             .filter_map(|line| re.captures(line))
-            .map(|captured| {
+            .flat_map(|captured| {
                 [
                     (
                         format!("llvm-lines.{}.lines", captured.get(3).unwrap().as_str()),
@@ -44,7 +44,6 @@ impl Metrics for LlvmLines {
                     ),
                 ]
             })
-            .flatten()
             .collect()
     }
 }
