@@ -1668,6 +1668,7 @@ dependencies = [
  "crossbeam",
  "nvml-wrapper",
  "plotters",
+ "regex",
  "serde",
  "serde_json",
  "statistical",
