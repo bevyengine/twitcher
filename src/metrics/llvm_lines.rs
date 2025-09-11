@@ -18,7 +18,7 @@ impl Metrics for LlvmLines {
 
     fn artifacts(&self) -> HashMap<String, PathBuf> {
         std::fs::File::create("done").unwrap();
-        HashMap::from([(format!("llvm-lines",), Path::new("done").to_path_buf())])
+        HashMap::from([("llvm-lines".to_string(), Path::new("done").to_path_buf())])
     }
 
     fn collect(&self) -> HashMap<String, u64> {
