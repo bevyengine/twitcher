@@ -9,9 +9,9 @@ use std::{
 use clap::{Parser, Subcommand};
 use strum::{EnumIter, IntoEnumIterator};
 use twitcher::{
-    Metrics, benchmarks, binary_size, compile_time, crate_compile_time,
+    Metrics,
+    metrics::*,
     stats::{Host, Rust, Stats},
-    stress_tests, wasm_binary_size,
 };
 use xshell::{Shell, cmd};
 
