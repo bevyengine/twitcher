@@ -1,12 +1,7 @@
 use std::{collections::HashMap, path::PathBuf};
 
-pub mod benchmarks;
-pub mod binary_size;
-pub mod compile_time;
-pub mod crate_compile_time;
+pub mod metrics;
 pub mod stats;
-pub mod stress_tests;
-pub mod wasm_binary_size;
 
 pub trait Metrics: std::fmt::Debug {
     fn prepare(&self) -> bool;
