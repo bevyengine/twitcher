@@ -96,6 +96,76 @@
                     config: { customFormatTypes: true }
                 };
             };
+            crateCompilationTime = (file, title) => {
+                return {
+                    $schema: "https://vega.github.io/schema/vega-lite/v6.json",
+                    data: {
+                        url: file,
+                    },
+                    width: "container",
+                    transform: [
+                        {
+                            calculate:
+                                "'https://github.com/bevyengine/bevy/commit/' + datum.commit",
+                            as: "url",
+                        },
+                    ],
+                    title: title,
+                    mark: {
+                        type: "circle",
+                    },
+                    params: [{ name: "between", value: [{{ start }}, {{ end }}] }],
+
+                    encoding: {
+                        x: {
+                            title: "",
+                            field: "timestamp",
+                            type: "temporal",
+                            scale: {domain: {selection: "between"}},
+                        },
+                        y: {
+                            field: "value",
+                            type: "quantitative",
+                            scale: {
+                                domainMin: 0,
+                            },
+                            axis: {
+                                formatType: "duration",
+                            },
+                            title: "Duration",
+                        },
+                        tooltip: [
+                            {
+                                field: "value",
+                                formatType: "duration",
+                                title: "Duration",
+                            },
+                            { field: "commit" },
+                            {
+                                field: "timestamp",
+                                title: "Time",
+                                type: "temporal",
+                                format: "%Y-%m-%d %H:%M:%S",
+                            }
+                        ],
+                        href: { field: "url", type: "nominal" },
+                        color: {
+                            condition: [
+                                {
+                                    test: "datum.value > 20000",
+                                    value: "red",
+                                },
+                                {
+                                    test: "datum.value > 10000",
+                                    value: "orange",
+                                },
+                            ],
+                            value: "green",
+                        },
+                    },
+                    config: { customFormatTypes: true }
+                };
+            };
             domain = (file, title) => {
                 return {
                     $schema: "https://vega.github.io/schema/vega-lite/v6.json",
@@ -276,7 +346,7 @@
             {% for crate in crate_names -%}
             vegaEmbed(
                 "#{{ crate }} > #graph",
-                compilationTime(
+                crateCompilationTime(
                     "data/crate-compile-time-unix-x86_64-16.{{ crate }}.mean.json",
                     "Crate Mean Compilation Time - {{ crate }}",
                 ),
