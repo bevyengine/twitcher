@@ -1,0 +1,154 @@
+<!doctype html>
+<html>
+    <head>
+        <script src="https://cdn.jsdelivr.net/npm/vega@6.2.0"></script>
+        <script src="https://cdn.jsdelivr.net/npm/vega-lite@6.1.0"></script>
+        <script src="https://cdn.jsdelivr.net/npm/vega-embed@7.0.2"></script>
+    </head>
+    <body>
+        <div style="display: flex">
+            <div id="compilation8" style="width: 50%"></div>
+            <div id="compilation16" style="width: 50%"></div>
+        </div>
+        <div style="display: flex; flex-wrap: wrap">
+            {% for metric in cratecompilationtimes -%}
+            <div id="{{ metric | replace(from=".", to="-") }}" style="width: 50%"></div>
+            {% endfor %}
+        </div>
+
+        <script>
+            vega.expressionFunction("duration", function (ms, params) {
+                const time = {
+                    h: Math.floor(ms / 3600000) % 24,
+                    m: Math.floor(ms / 60000) % 60,
+                    s: Math.floor(ms / 1000) % 60,
+                    ms: Math.floor(ms) % 1000,
+                };
+                return Object.entries(time)
+                    .filter((val) => val[1] !== 0)
+                    .map(([key, val]) => `${val}${key}`)
+                    .join(" ");
+            });
+
+            compilationTime = (file, title) => {
+                return {
+                    $schema: "https://vega.github.io/schema/vega-lite/v6.json",
+                    description: "Google's stock price over time.",
+                    data: {
+                        url: file,
+                    },
+                    vconcat: [{
+                        width: "container",
+                        transform: [
+                            {
+                                calculate:
+                                    "'https://github.com/bevyengine/bevy/commit/' + datum.commit",
+                                as: "url",
+                            },
+                        ],
+                        title: title,
+                        mark: {
+                            type: "line",
+                        },
+                        encoding: {
+                            x: {
+                                title: "",
+                                field: "timestamp",
+                                type: "temporal",
+                                scale: {domain: {selection: "brush"}},
+                            },
+                            y: {
+                                field: "value",
+                                type: "quantitative",
+                                scale: {
+                                    domainMin: 0,
+                                },
+                                axis: {
+                                    formatType: "duration",
+                                },
+                                title: "Duration",
+                            },
+                            tooltip: [
+                                {
+                                    field: "value",
+                                    formatType: "duration",
+                                    title: "Duration",
+                                },
+                                { field: "commit" },
+                            ],
+                            href: { field: "url", type: "nominal" },
+                        }
+                    },{
+                        width: "container",
+                        height: 60,
+                        transform: [
+                            {
+                                calculate:
+                                    "'https://github.com/bevyengine/bevy/commit/' + datum.commit",
+                                as: "url",
+                            },
+                        ],
+                        selection: {
+                          brush: {type: "interval", encodings: ["x"]}
+                        },
+                        mark: {
+                            type: "line",
+                        },
+                        encoding: {
+                            x: {
+                                field: "timestamp",
+                                type: "temporal"
+                            },
+                            y: {
+                                field: "value",
+                                type: "quantitative",
+                                scale: {
+                                    domainMin: 0,
+                                },
+                                axis: {
+                                    grid: false,
+                                    tickCount: 0,
+                                },
+                                title: "",
+                            }
+                        }
+                    }],
+                    config: { customFormatTypes: true }
+                };
+            };
+
+            vegaEmbed(
+                "#compilation16",
+                compilationTime(
+                    "data/compile-time-unix-x86_64-16.mean.json",
+                    "Mean Compilation Time (16 cores)",
+                ),
+                { mode: "vega-lite" },
+            )
+                .then(console.log)
+                .catch(console.warn);
+            vegaEmbed(
+                "#compilation8",
+                compilationTime(
+                    "data/compile-time-unix-x86_64-8.mean.json",
+                    "Mean Compilation Time (8 cores)",
+                ),
+                { mode: "vega-lite" },
+            )
+                .then(console.log)
+                .catch(console.warn);
+            {% for metric in cratecompilationtimes -%}
+            vegaEmbed(
+                "#{{ metric | replace(from=".", to="-") }}",
+                compilationTime(
+                    "data/{{metric}}.json",
+                    "{{metric}}",
+                ),
+                { mode: "vega-lite" },
+            )
+                .then(console.log)
+                .catch(console.warn);
+            {% endfor %}
+        </script>
+    </body>
+</html>
