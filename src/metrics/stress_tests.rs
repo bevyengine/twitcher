@@ -119,22 +119,18 @@ impl Metrics for StressTest {
         };
         let elapsed = start.elapsed();
 
-        let mut cpu_usage = vec![];
-        while let Ok(v) = cpu.try_recv() {
-            cpu_usage.push(v);
-        }
-        // remove first elements as that was during startup
-        cpu_usage.remove(0);
-        cpu_usage.remove(0);
+        let cpu_usage = cpu.try_iter().skip(2).collect::<Vec<_>>();
+        while cpu.try_recv().is_ok() {}
         std::mem::drop(cpu);
-        let mut gpu_usage = vec![];
-        while let Ok(v) = gpu.try_recv() {
-            gpu_usage.push(v);
-        }
-        // remove first elements as that was during startup
-        gpu_usage.remove(0);
-        gpu_usage.remove(0);
+
+        let gpu_usage = gpu
+            .try_iter()
+            .filter(|v| v.sm != 0)
+            .skip(2)
+            .collect::<Vec<_>>();
+        while gpu.try_recv().is_ok() {}
         std::mem::drop(gpu);
+
         let gpu_memory = gpu_usage.iter().map(|v| v.mem as f32).collect::<Vec<_>>();
         let gpu_usage = gpu_usage.iter().map(|v| v.sm as f32).collect::<Vec<_>>();
 
@@ -293,6 +289,9 @@ fn gpu_usage() -> Receiver<GpuUsage> {
                 Ok(processes) => processes,
                 Err(NvmlError::NotFound) => {
                     // No process using the GPU found
+                    if tx.send(GpuUsage { sm: 0, mem: 0 }).is_err() {
+                        break;
+                    }
                     continue;
                 }
                 Err(_) => {
