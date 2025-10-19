@@ -2,10 +2,7 @@ use std::{collections::HashSet, fs::File, io::BufReader, path::Path};
 
 use serde::Serialize;
 use tera::Tera;
-use twitcher::{
-    file_safe_metric_name,
-    stats::{Stats, find_stats_files},
-};
+use twitcher::stats::{Stats, find_stats_files};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let _ = std::fs::create_dir("data");
@@ -51,16 +48,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let keys: HashSet<_> = stats
         .iter()
         .flat_map(|stat| stat.metrics.keys())
-        .filter(|m| m.starts_with("crate-compile-time") && m.contains(".mean"))
-        .map(|m| file_safe_metric_name(m))
+        .filter(|m| m.starts_with("crate-compile-time") && m.ends_with(".mean"))
+        .map(|m| m.split('.').nth(1).unwrap())
         .collect();
-    let mut metrics: Vec<_> = keys.iter().collect();
-    metrics.sort();
+    let mut crate_names: Vec<_> = keys.iter().collect();
+    crate_names.sort();
 
     let tera = Tera::new("templates/*").unwrap();
     let mut context = tera::Context::new();
 
-    context.insert("cratecompilationtimes", &metrics);
+    context.insert("crate_names", &crate_names);
 
     let rendered = tera.render("compile-time.html", &context).unwrap();
     std::fs::write("./compile-time.html", &rendered).unwrap();

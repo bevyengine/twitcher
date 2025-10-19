@@ -11,8 +11,8 @@
             <div id="compilation16" style="width: 50%"></div>
         </div>
         <div style="display: flex; flex-wrap: wrap">
-            {% for metric in cratecompilationtimes -%}
-            <div id="{{ metric | replace(from=".", to="-") }}" style="width: 50%"></div>
+            {% for crate in crate_names -%}
+            <div id="{{ crate }}" style="width: 33%"></div>
             {% endfor %}
         </div>
 
@@ -124,9 +124,7 @@
                     "Mean Compilation Time (16 cores)",
                 ),
                 { mode: "vega-lite" },
-            )
-                .then(console.log)
-                .catch(console.warn);
+            );
             vegaEmbed(
                 "#compilation8",
                 compilationTime(
@@ -134,20 +132,16 @@
                     "Mean Compilation Time (8 cores)",
                 ),
                 { mode: "vega-lite" },
-            )
-                .then(console.log)
-                .catch(console.warn);
-            {% for metric in cratecompilationtimes -%}
+            );
+            {% for crate in crate_names -%}
             vegaEmbed(
-                "#{{ metric | replace(from=".", to="-") }}",
+                "#{{ crate }}",
                 compilationTime(
-                    "data/{{metric}}.json",
-                    "{{metric}}",
+                    "data/crate-compile-time-unix-x86_64-16.{{ crate }}.mean.json",
+                    "Crate Mean Compilation Time - {{ crate }}",
                 ),
                 { mode: "vega-lite" },
-            )
-                .then(console.log)
-                .catch(console.warn);
+            );
             {% endfor %}
         </script>
     </body>
