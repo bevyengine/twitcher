@@ -16,6 +16,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         })
         .collect();
 
+    let mut min_timestamp = u128::MAX;
+    let mut max_timestamp = 0;
     let compilation_keys: HashSet<_> = stats
         .iter()
         .flat_map(|stat| stat.metrics.keys())
@@ -31,6 +33,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             //         <= chrono::Duration::days(30)
             // })
             .flat_map(|stat| {
+                if stat.commit_timestamp < min_timestamp {
+                    min_timestamp = stat.commit_timestamp;
+                }
+                if stat.commit_timestamp > max_timestamp {
+                    max_timestamp = stat.commit_timestamp;
+                }
                 stat.metrics.get(metric).map(|value| DataPoint {
                     timestamp: stat.commit_timestamp,
                     commit: stat.commit.clone(),
@@ -58,6 +66,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut context = tera::Context::new();
 
     context.insert("crate_names", &crate_names);
+    context.insert("start", &min_timestamp);
+    context.insert("end", &max_timestamp);
 
     let rendered = tera.render("compile-time.html", &context).unwrap();
     std::fs::write("./compile-time.html", &rendered).unwrap();
