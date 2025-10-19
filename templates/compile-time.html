@@ -84,6 +84,12 @@
                                 title: "Duration",
                             },
                             { field: "commit" },
+                            {
+                                field: "timestamp",
+                                title: "Time",
+                                type: "temporal",
+                                format: "%Y-%m-%d %H:%M:%S",
+                            }
                         ],
                         href: { field: "url", type: "nominal" },
                     },
