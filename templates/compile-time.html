@@ -37,45 +37,83 @@
                     data: {
                         url: file,
                     },
-                    width: "container",
-                    transform: [
-                        {
-                            calculate:
-                                "'https://github.com/bevyengine/bevy/commit/' + datum.commit",
-                            as: "url",
-                        },
-                    ],
-                    title: title,
-                    mark: {
-                        type: "line",
-                    },
-                    encoding: {
-                        x: {
-                            field: "timestamp",
-                            type: "temporal",
-                        },
-                        y: {
-                            field: "value",
-                            type: "quantitative",
-                            scale: {
-                                domainMin: 0,
-                            },
-                            axis: {
-                                formatType: "duration",
-                            },
-                            title: "Duration",
-                        },
-                        tooltip: [
+                    vconcat: [{
+                        width: "container",
+                        transform: [
                             {
+                                calculate:
+                                    "'https://github.com/bevyengine/bevy/commit/' + datum.commit",
+                                as: "url",
+                            },
+                        ],
+                        title: title,
+                        mark: {
+                            type: "line",
+                        },
+                        encoding: {
+                            x: {
+                                title: "",
+                                field: "timestamp",
+                                type: "temporal",
+                                scale: {domain: {selection: "brush"}},
+                            },
+                            y: {
                                 field: "value",
-                                formatType: "duration",
+                                type: "quantitative",
+                                scale: {
+                                    domainMin: 0,
+                                },
+                                axis: {
+                                    formatType: "duration",
+                                },
                                 title: "Duration",
                             },
-                            { field: "commit" },
+                            tooltip: [
+                                {
+                                    field: "value",
+                                    formatType: "duration",
+                                    title: "Duration",
+                                },
+                                { field: "commit" },
+                            ],
+                            href: { field: "url", type: "nominal" },
+                        }
+                    },{
+                        width: "container",
+                        height: 60,
+                        transform: [
+                            {
+                                calculate:
+                                    "'https://github.com/bevyengine/bevy/commit/' + datum.commit",
+                                as: "url",
+                            },
                         ],
-                        href: { field: "url", type: "nominal" },
-                    },
-                    config: { customFormatTypes: true },
+                        selection: {
+                          brush: {type: "interval", encodings: ["x"]}
+                        },
+                        mark: {
+                            type: "line",
+                        },
+                        encoding: {
+                            x: {
+                                field: "timestamp",
+                                type: "temporal"
+                            },
+                            y: {
+                                field: "value",
+                                type: "quantitative",
+                                scale: {
+                                    domainMin: 0,
+                                },
+                                axis: {
+                                    grid: false,
+                                    tickCount: 0,
+                                },
+                                title: "",
+                            }
+                        }
+                    }],
+                    config: { customFormatTypes: true }
                 };
             };
 
