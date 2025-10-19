@@ -112,15 +112,16 @@ jobs:
               then
                   :
               else
-                  i=$((i + 1))
                   j=$((j + 1))
-                  if [ $i -le $max ]; then
+                  if [ $i -lt $max ]; then
+                      i=$((i + 1))
                       touch ../queue/$commit
                   fi
                 fi
           done
           echo "Added $i commits out of $j missing commits"
           echo "ADDED=$i" >> "$GITHUB_OUTPUT"
+          echo "TOTAL=$j" >> "$GITHUB_OUTPUT"
       - name: Commit
         if: steps.queue.outputs.ADDED > 0
         run: |
@@ -129,5 +130,5 @@ jobs:
           git config user.email '<>'
 
           git add .
-          git commit -m "Queued ${{ steps.queue.outputs.ADDED }} history commits"
+          git commit -m "Queued ${{ steps.queue.outputs.ADDED }} / ${{ steps.queue.outputs.TOTAL }} history commits"
           git push
