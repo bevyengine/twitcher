@@ -122,7 +122,10 @@
                     mark: {
                         type: "line",
                     },
-                    params: [{ name: "between", value: [{{ threemonthsago }}, {{ end }}] }],
+                    params: [
+                        { name: "between", value: [{{ threemonthsago }}, {{ end }}] }
+                        { name: "has_zero", value: true }
+                    ],
 
                     encoding: {
                         x: {
@@ -135,7 +138,7 @@
                             field: "value",
                             type: "quantitative",
                             scale: {
-                                domainMin: 0,
+                                zero: { expr: "has_zero" },
                             },
                             axis: {
                                 formatType: "duration",
@@ -179,7 +182,10 @@
                     mark: {
                         type: "circle",
                     },
-                    params: [{ name: "between", value: [{{ threemonthsago }}, {{ end }}] }],
+                    params: [
+                      { name: "between", value: [{{ threemonthsago }}, {{ end }}] }
+                      { name: "has_zero", value: true }
+                    ],
 
                     encoding: {
                         x: {
@@ -192,7 +198,7 @@
                             field: "value",
                             type: "quantitative",
                             scale: {
-                                domainMin: 0,
+                                zero: { expr: "has_zero" },
                             },
                             axis: {
                                 formatType: "duration",
