@@ -7,12 +7,21 @@
     </head>
     <body>
         <div style="display: flex">
-            <div id="compilation8" style="width: 50%"></div>
-            <div id="compilation16" style="width: 50%"></div>
+            <div id="compilation8" style="width: 50%">
+                <div id="graph" style="width: 100%"></div>
+                <div id="domain" style="width: 100%"></div>
+            </div>
+            <div id="compilation16" style="width: 50%">
+                <div id="graph" style="width: 100%"></div>
+                <div id="domain" style="width: 100%"></div>
+            </div>
         </div>
         <div style="display: flex; flex-wrap: wrap">
-            {% for metric in cratecompilationtimes -%}
-            <div id="{{ metric | replace(from=".", to="-") }}" style="width: 50%"></div>
+            {% for crate in crate_names -%}
+            <div id="{{ crate }}" style="width: 25%">
+                <div id="graph" style="width: 100%"></div>
+                <div id="domain" style="width: 100%"></div>
+            </div>
             {% endfor %}
         </div>
 
@@ -33,121 +42,337 @@
             compilationTime = (file, title) => {
                 return {
                     $schema: "https://vega.github.io/schema/vega-lite/v6.json",
-                    description: "Google's stock price over time.",
                     data: {
                         url: file,
                     },
-                    vconcat: [{
-                        width: "container",
-                        transform: [
-                            {
-                                calculate:
-                                    "'https://github.com/bevyengine/bevy/commit/' + datum.commit",
-                                as: "url",
-                            },
-                        ],
-                        title: title,
-                        mark: {
-                            type: "line",
+                    width: "container",
+                    transform: [
+                        {
+                            calculate:
+                                "'https://github.com/bevyengine/bevy/commit/' + datum.commit",
+                            as: "url",
                         },
-                        encoding: {
-                            x: {
-                                title: "",
-                                field: "timestamp",
-                                type: "temporal",
-                                scale: {domain: {selection: "brush"}},
+                    ],
+                    title: title,
+                    mark: {
+                        type: "line",
+                    },
+                    params: [{ name: "between", value: [{{ threemonthsago }}, {{ end }}] }],
+
+                    encoding: {
+                        x: {
+                            title: "",
+                            field: "timestamp",
+                            type: "temporal",
+                            scale: {domain: {selection: "between"}},
+                        },
+                        y: {
+                            field: "value",
+                            type: "quantitative",
+                            scale: {
+                                domainMin: 0,
                             },
-                            y: {
+                            axis: {
+                                formatType: "duration",
+                            },
+                            title: "Duration",
+                        },
+                        tooltip: [
+                            {
                                 field: "value",
-                                type: "quantitative",
-                                scale: {
-                                    domainMin: 0,
-                                },
-                                axis: {
-                                    formatType: "duration",
-                                },
+                                formatType: "duration",
                                 title: "Duration",
                             },
-                            tooltip: [
-                                {
-                                    field: "value",
-                                    formatType: "duration",
-                                    title: "Duration",
-                                },
-                                { field: "commit" },
-                            ],
-                            href: { field: "url", type: "nominal" },
-                        }
-                    },{
-                        width: "container",
-                        height: 60,
-                        transform: [
+                            { field: "commit" },
                             {
-                                calculate:
-                                    "'https://github.com/bevyengine/bevy/commit/' + datum.commit",
-                                as: "url",
-                            },
-                        ],
-                        selection: {
-                          brush: {type: "interval", encodings: ["x"]}
-                        },
-                        mark: {
-                            type: "line",
-                        },
-                        encoding: {
-                            x: {
                                 field: "timestamp",
-                                type: "temporal"
-                            },
-                            y: {
-                                field: "value",
-                                type: "quantitative",
-                                scale: {
-                                    domainMin: 0,
-                                },
-                                axis: {
-                                    grid: false,
-                                    tickCount: 0,
-                                },
-                                title: "",
+                                title: "Time",
+                                type: "temporal",
+                                format: "%Y-%m-%d %H:%M:%S",
                             }
+                        ],
+                        href: { field: "url", type: "nominal" },
+                    },
+                    config: { customFormatTypes: true }
+                };
+            };
+            crateCompilationTime = (file, title) => {
+                return {
+                    $schema: "https://vega.github.io/schema/vega-lite/v6.json",
+                    data: {
+                        url: file,
+                    },
+                    width: "container",
+                    transform: [
+                        {
+                            calculate:
+                                "'https://github.com/bevyengine/bevy/commit/' + datum.commit",
+                            as: "url",
+                        },
+                    ],
+                    title: title,
+                    mark: {
+                        type: "circle",
+                    },
+                    params: [{ name: "between", value: [{{ threemonthsago }}, {{ end }}] }],
+
+                    encoding: {
+                        x: {
+                            title: "",
+                            field: "timestamp",
+                            type: "temporal",
+                            scale: {domain: {selection: "between"}},
+                        },
+                        y: {
+                            field: "value",
+                            type: "quantitative",
+                            scale: {
+                                domainMin: 0,
+                            },
+                            axis: {
+                                formatType: "duration",
+                            },
+                            title: "Duration",
+                        },
+                        tooltip: [
+                            {
+                                field: "value",
+                                formatType: "duration",
+                                title: "Duration",
+                            },
+                            { field: "commit" },
+                            {
+                                field: "timestamp",
+                                title: "Time",
+                                type: "temporal",
+                                format: "%Y-%m-%d %H:%M:%S",
+                            }
+                        ],
+                        href: { field: "url", type: "nominal" },
+                        color: {
+                            condition: [
+                                {
+                                    test: "datum.value > 20000",
+                                    value: "red",
+                                },
+                                {
+                                    test: "datum.value > 10000",
+                                    value: "orange",
+                                },
+                            ],
+                            value: "green",
+                        },
+                    },
+                    config: { customFormatTypes: true }
+                };
+            };
+            domain = (file, title) => {
+                return {
+                    $schema: "https://vega.github.io/schema/vega-lite/v6.json",
+                    data: {
+                        url: file,
+                    },
+                    width: "container",
+                    height: 60,
+                    transform: [
+                        {
+                            calculate:
+                                "'https://github.com/bevyengine/bevy/commit/' + datum.commit",
+                            as: "url",
+                        },
+                    ],
+                    selection: {
+                        between: {
+                            type: "interval",
+                            encodings: ["x"],
+                            init: [{{ threemonthsago }}, {{ end }}]
                         }
-                    }],
+                    },
+                    mark: {
+                        type: "line",
+                    },
+                    encoding: {
+                        x: {
+                            field: "timestamp",
+                            type: "temporal",
+                              scale: {
+                                  domain: [{{ start }}, {{ end }}],
+                              },
+                        },
+                        y: {
+                            field: "value",
+                            type: "quantitative",
+                            scale: {
+                                domainMin: 0,
+                            },
+                            axis: {
+                                grid: false,
+                                tickCount: 0,
+                            },
+                            title: "",
+                        }
+                    },
                     config: { customFormatTypes: true }
                 };
             };
 
+            function throttle(func, delay = 50) {
+              let timer = null;
+
+              return (...args) => {
+                if (timer === null) {
+                  func(...args);
+                  timer = setTimeout(() => {
+                    timer = null;
+                  }, delay);
+                }
+              };
+            }
+
+            function isEmpty(obj) {
+                for (const prop in obj) {
+                    if (Object.hasOwn(obj, prop)) {
+                        return false;
+                    }
+                }
+
+                return true;
+            }
+
+            let views = {};
+            let domains = {};
+            let last_values = [[0, 1]];
+
+            function share_interval(emitter, value) {
+                var percent = [0, 1];
+
+                if (!isEmpty(value)) {
+                    percent = value.map(
+                        (x) => x / domains[emitter].signal("width"),
+                    );
+                    if (value[0] == value[1]) {
+                        percent = [0, 1];
+                    }
+                    if (value[0] === undefined) {
+                        percent[0] = last_values[last_values.length - 2][0];
+                    }
+                }
+                if (
+                    (percent[0] === 0 &&
+                        percent[1] === 1 &&
+                        last_values[last_values.length - 1][0] === 0) ||
+                    (percent[0] != 0 &&
+                        last_values.find(
+                            (x) => x[0] === percent[0] && x[1] === percent[1],
+                        ))
+                ) {
+                    return;
+                }
+                last_values.push(percent);
+                if (last_values.length > 10) {
+                    last_values.shift();
+                }
+
+                let timestamps = percent.map(
+                    (x) => x * (1760805869000 - 1743541086000) + 1743541086000,
+                );
+                for (name in views) {
+                    let view = views[name];
+                    view.signal("between", timestamps).runAsync();
+                }
+
+                for (name in domains) {
+                    let view = domains[name];
+                    if (view == emitter) {
+                        continue;
+                    }
+                    if (value[0] == value[1]) {
+                        view.signal("between_x", {});
+                    } else {
+                        view.signal(
+                            "between_x",
+                            percent.map((x) => x * view.signal("width")),
+                        );
+                    }
+                }
+            }
+
             vegaEmbed(
-                "#compilation16",
+                "#compilation16 > #graph",
                 compilationTime(
                     "data/compile-time-unix-x86_64-16.mean.json",
                     "Mean Compilation Time (16 cores)",
                 ),
                 { mode: "vega-lite" },
-            )
-                .then(console.log)
-                .catch(console.warn);
+            ).then((embedded) => {
+                views["16"] = embedded.view;
+            });
             vegaEmbed(
-                "#compilation8",
+                "#compilation16 > #domain",
+                domain(
+                    "data/compile-time-unix-x86_64-16.mean.json",
+                    "Mean Compilation Time (16 cores)",
+                ),
+                { mode: "vega-lite" },
+            ).then((embedded) => {
+                domains["16"] = embedded.view;
+                embedded.view.addSignalListener(
+                    "between_x",
+                    throttle((_, value) => share_interval("16", value)),
+                );
+            });
+
+            vegaEmbed(
+                "#compilation8 > #graph",
                 compilationTime(
                     "data/compile-time-unix-x86_64-8.mean.json",
                     "Mean Compilation Time (8 cores)",
                 ),
                 { mode: "vega-lite" },
-            )
-                .then(console.log)
-                .catch(console.warn);
-            {% for metric in cratecompilationtimes -%}
+            ).then((embedded) => {
+                views["8"] = embedded.view;
+            });
             vegaEmbed(
-                "#{{ metric | replace(from=".", to="-") }}",
-                compilationTime(
-                    "data/{{metric}}.json",
-                    "{{metric}}",
+                "#compilation8 > #domain",
+                domain(
+                    "data/compile-time-unix-x86_64-8.mean.json",
+                    "Mean Compilation Time (8 cores)",
                 ),
                 { mode: "vega-lite" },
-            )
-                .then(console.log)
-                .catch(console.warn);
+            ).then((embedded) => {
+                domains["8"] = embedded.view;
+                embedded.view.addSignalListener(
+                    "between_x",
+                    throttle((_, value) => share_interval("8", value)),
+                );
+            });
+
+            {% for crate in crate_names -%}
+            vegaEmbed(
+                "#{{ crate }} > #graph",
+                crateCompilationTime(
+                    "data/crate-compile-time-unix-x86_64-16.{{ crate }}.mean.json",
+                    "Crate Mean Compilation Time - {{ crate }}",
+                ),
+                { mode: "vega-lite" },
+            ).then((embedded) => {
+                views["{{ crate }}"] = embedded.view;
+            });
+            vegaEmbed(
+                "#{{ crate }} > #domain",
+                domain(
+                    "data/crate-compile-time-unix-x86_64-16.{{ crate }}.mean.json",
+                    "Crate Mean Compilation Time - {{ crate }}",
+                ),
+                { mode: "vega-lite" },
+            ).then((embedded) => {
+                domains["{{ crate }}"] = embedded.view;
+                embedded.view.addSignalListener(
+                    "between_x",
+                    throttle((_, value) => share_interval("{{ crate }}", value)),
+                );
+            });
+
             {% endfor %}
         </script>
     </body>

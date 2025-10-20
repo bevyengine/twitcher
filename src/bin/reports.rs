@@ -1,11 +1,9 @@
 use std::{collections::HashSet, fs::File, io::BufReader, path::Path};
 
+use chrono::Months;
 use serde::Serialize;
 use tera::Tera;
-use twitcher::{
-    file_safe_metric_name,
-    stats::{Stats, find_stats_files},
-};
+use twitcher::stats::{Stats, find_stats_files};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let _ = std::fs::create_dir("data");
@@ -19,6 +17,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         })
         .collect();
 
+    let mut min_timestamp = u128::MAX;
+    let mut max_timestamp = 0;
     let compilation_keys: HashSet<_> = stats
         .iter()
         .flat_map(|stat| stat.metrics.keys())
@@ -34,6 +34,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             //         <= chrono::Duration::days(30)
             // })
             .flat_map(|stat| {
+                if stat.commit_timestamp < min_timestamp {
+                    min_timestamp = stat.commit_timestamp;
+                }
+                if stat.commit_timestamp > max_timestamp {
+                    max_timestamp = stat.commit_timestamp;
+                }
                 stat.metrics.get(metric).map(|value| DataPoint {
                     timestamp: stat.commit_timestamp,
                     commit: stat.commit.clone(),
@@ -51,16 +57,26 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let keys: HashSet<_> = stats
         .iter()
         .flat_map(|stat| stat.metrics.keys())
-        .filter(|m| m.starts_with("crate-compile-time") && m.contains(".mean"))
-        .map(|m| file_safe_metric_name(m))
+        .filter(|m| m.starts_with("crate-compile-time") && m.ends_with(".mean"))
+        .map(|m| m.split('.').nth(1).unwrap())
         .collect();
-    let mut metrics: Vec<_> = keys.iter().collect();
-    metrics.sort();
+    let mut crate_names: Vec<_> = keys.iter().collect();
+    crate_names.sort();
 
     let tera = Tera::new("templates/*").unwrap();
     let mut context = tera::Context::new();
 
-    context.insert("cratecompilationtimes", &metrics);
+    context.insert("crate_names", &crate_names);
+    context.insert("start", &min_timestamp);
+    context.insert("end", &max_timestamp);
+    context.insert(
+        "threemonthsago",
+        &(chrono::Utc::now()
+            .checked_sub_months(Months::new(3))
+            .unwrap()
+            .timestamp()
+            * 1000),
+    );
 
     let rendered = tera.render("compile-time.html", &context).unwrap();
     std::fs::write("./compile-time.html", &rendered).unwrap();
