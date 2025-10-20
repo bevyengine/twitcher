@@ -185,7 +185,7 @@
                         between: {
                             type: "interval",
                             encodings: ["x"],
-                            init: [{{ threemonthsago }}, {{ end }}]
+                            init: {x: [{{ threemonthsago }}, {{ end }}]}
                         }
                     },
                     mark: {
