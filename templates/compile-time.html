@@ -57,7 +57,7 @@
                     mark: {
                         type: "line",
                     },
-                    params: [{ name: "between", value: [{{ start }}, {{ end }}] }],
+                    params: [{ name: "between", value: [{{ threemonthsago }}, {{ end }}] }],
 
                     encoding: {
                         x: {
@@ -114,7 +114,7 @@
                     mark: {
                         type: "circle",
                     },
-                    params: [{ name: "between", value: [{{ start }}, {{ end }}] }],
+                    params: [{ name: "between", value: [{{ threemonthsago }}, {{ end }}] }],
 
                     encoding: {
                         x: {
@@ -182,7 +182,11 @@
                         },
                     ],
                     selection: {
-                      between: {type: "interval", encodings: ["x"]}
+                        between: {
+                            type: "interval",
+                            encodings: ["x"],
+                            init: [{{ threemonthsago }}, {{ end }}]
+                        }
                     },
                     mark: {
                         type: "line",

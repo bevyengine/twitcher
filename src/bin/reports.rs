@@ -1,5 +1,6 @@
 use std::{collections::HashSet, fs::File, io::BufReader, path::Path};
 
+use chrono::Months;
 use serde::Serialize;
 use tera::Tera;
 use twitcher::stats::{Stats, find_stats_files};
@@ -68,6 +69,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     context.insert("crate_names", &crate_names);
     context.insert("start", &min_timestamp);
     context.insert("end", &max_timestamp);
+    context.insert(
+        "threemonthsago",
+        &(chrono::Utc::now()
+            .checked_sub_months(Months::new(3))
+            .unwrap()
+            .timestamp()
+            * 1000),
+    );
 
     let rendered = tera.render("compile-time.html", &context).unwrap();
     std::fs::write("./compile-time.html", &rendered).unwrap();
