@@ -78,8 +78,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             * 1000),
     );
 
-    let rendered = tera.render("compile-time.html", &context).unwrap();
-    std::fs::write("./compile-time.html", &rendered).unwrap();
+    let rendered = tera.render("compile-stats.html", &context).unwrap();
+    std::fs::write("./compile-stats.html", &rendered).unwrap();
 
     Ok(())
 }

@@ -102,6 +102,16 @@
                 <div id="domain" class="domain"></div>
             </div>
         </div>
+        <div style="display: flex">
+            <div id="sizenative" class="maingraph">
+                <div id="graph" class="graph"></div>
+                <div id="domain" class="domain"></div>
+            </div>
+            <div id="sizewasm" class="maingraph">
+                <div id="graph" class="graph"></div>
+                <div id="domain" class="domain"></div>
+            </div>
+        </div>
         <div style="display: flex; flex-wrap: wrap">
             {% for crate in crate_names -%}
             <div id="{{ crate }}" class="detailedgraph">
@@ -123,6 +133,29 @@
                     .filter((val) => val[1] !== 0)
                     .map(([key, val]) => `${val}${key}`)
                     .join(" ");
+            });
+            vega.expressionFunction("filesize", function (ms, params) {
+                const size = {
+                    gb: Math.floor(ms / (1024**3)) % 1024,
+                    mb: Math.floor(ms / (1024**2)) % 1024,
+                    kb: Math.floor(ms / 1024) % 1024,
+                    b: Math.floor(ms) % 1024,
+                };
+                return Object.entries(size)
+                    .filter((val) => val[1] !== 0)
+                    .map(([key, val]) => `${val}${key}`)
+                    .join(" ");
+            });
+            vega.expressionFunction("filesizeshort", function (ms, params) {
+                const size = {
+                    gb: Math.floor(ms / (1024**3)) % 1024,
+                    mb: Math.floor(ms / (1024**2)) % 1024,
+                    kb: Math.floor(ms / 1024) % 1024,
+                    b: Math.floor(ms) % 1024,
+                };
+                return Object.entries(size)
+                    .filter((val) => val[1] !== 0)
+                    .map(([key, val]) => `${val}${key}`)[0];
             });
 
             compilationTime = (file, title) => {
@@ -171,6 +204,66 @@
                                 field: "value",
                                 formatType: "duration",
                                 title: "Duration",
+                            },
+                            { field: "commit" },
+                            {
+                                field: "timestamp",
+                                title: "Time",
+                                type: "temporal",
+                                format: "%Y-%m-%d %H:%M:%S",
+                            }
+                        ],
+                        href: { field: "url", type: "nominal" },
+                    },
+                    config: { customFormatTypes: true }
+                };
+            };
+            size = (file, title) => {
+                return {
+                    $schema: "https://vega.github.io/schema/vega-lite/v6.json",
+                    data: {
+                        url: file,
+                    },
+                    width: "container",
+                    transform: [
+                        {
+                            calculate:
+                                "'https://github.com/bevyengine/bevy/commit/' + datum.commit",
+                            as: "url",
+                        },
+                    ],
+                    title: title,
+                    mark: {
+                        type: "line",
+                    },
+                    params: [
+                        { name: "between", value: [{{ threemonthsago }}, {{ end }}] },
+                        { name: "has_zero", value: true },
+                    ],
+
+                    encoding: {
+                        x: {
+                            title: "",
+                            field: "timestamp",
+                            type: "temporal",
+                            scale: {domain: {selection: "between"}},
+                        },
+                        y: {
+                            field: "value",
+                            type: "quantitative",
+                            scale: {
+                                zero: { expr: "has_zero" },
+                            },
+                            axis: {
+                                formatType: "filesizeshort",
+                            },
+                            title: "Size",
+                        },
+                        tooltip: [
+                            {
+                                field: "value",
+                                formatType: "filesize",
+                                title: "Size",
                             },
                             { field: "commit" },
                             {
@@ -433,6 +526,56 @@
                 { mode: "vega-lite", actions: false },
             ).then((embedded) => {
                 domains["8"] = embedded.view;
+                embedded.view.addSignalListener(
+                    "between_x",
+                    throttle((_, value) => share_interval("8", value)),
+                );
+            });
+
+            vegaEmbed(
+                "#sizenative > #graph",
+                size(
+                    "data/native-unix-x86_64.size.json",
+                    "Binary Size (native)",
+                ),
+                { mode: "vega-lite" },
+            ).then((embedded) => {
+                views["size-native"] = embedded.view;
+            });
+            vegaEmbed(
+                "#sizenative > #domain",
+                domain(
+                    "data/native-unix-x86_64.size.json",
+                    "Binary Size (native)",
+                ),
+                { mode: "vega-lite", actions: false },
+            ).then((embedded) => {
+                domains["size-native"] = embedded.view;
+                embedded.view.addSignalListener(
+                    "between_x",
+                    throttle((_, value) => share_interval("8", value)),
+                );
+            });
+
+            vegaEmbed(
+                "#sizewasm > #graph",
+                size(
+                    "data/wasm32-unknown-unknown.optimized.size.json",
+                    "Binary Size (optimised Wasm)",
+                ),
+                { mode: "vega-lite" },
+            ).then((embedded) => {
+                views["size-wasm"] = embedded.view;
+            });
+            vegaEmbed(
+                "#sizewasm > #domain",
+                domain(
+                    "data/wasm32-unknown-unknown.optimized.size.json",
+                    "Binary Size (optimised Wasm)",
+                ),
+                { mode: "vega-lite", actions: false },
+            ).then((embedded) => {
+                domains["size-wasm"] = embedded.view;
                 embedded.view.addSignalListener(
                     "between_x",
                     throttle((_, value) => share_interval("8", value)),
