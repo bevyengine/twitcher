@@ -62,6 +62,27 @@
                 -o-transform: rotate(45deg);
                 box-shadow: 4px 4px 10px rgba(0, 0, 0, 0.8);
             }
+            .maingraph {
+                width: 50%;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+            }
+            .detailedgraph {
+                width: 25%;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+            }
+            .graph {
+                width: 100%;
+            }
+            .maingraph > .domain {
+                width: 90%;
+            }
+            .detailedgraph > .domain {
+                width: 80%;
+            }
         </style>
         <script src="https://cdn.jsdelivr.net/npm/vega@6.2.0"></script>
         <script src="https://cdn.jsdelivr.net/npm/vega-lite@6.1.0"></script>
@@ -72,20 +93,20 @@
             <a href="https://github.com/bevyengine/twitcher">About</a>
         </span>
         <div style="display: flex">
-            <div id="compilation8" style="width: 50%">
-                <div id="graph" style="width: 100%"></div>
-                <div id="domain" style="width: 100%"></div>
+            <div id="compilation8" class="maingraph">
+                <div id="graph" class="graph"></div>
+                <div id="domain" class="domain"></div>
             </div>
-            <div id="compilation16" style="width: 50%">
-                <div id="graph" style="width: 100%"></div>
-                <div id="domain" style="width: 100%"></div>
+            <div id="compilation16" class="maingraph">
+                <div id="graph" class="graph"></div>
+                <div id="domain" class="domain"></div>
             </div>
         </div>
         <div style="display: flex; flex-wrap: wrap">
             {% for crate in crate_names -%}
-            <div id="{{ crate }}" style="width: 25%">
-                <div id="graph" style="width: 100%"></div>
-                <div id="domain" style="width: 100%"></div>
+            <div id="{{ crate }}" class="detailedgraph">
+                <div id="graph" class="graph"></div>
+                <div id="domain" class="domain"></div>
             </div>
             {% endfor %}
         </div>
@@ -122,7 +143,10 @@
                     mark: {
                         type: "line",
                     },
-                    params: [{ name: "between", value: [{{ threemonthsago }}, {{ end }}] }],
+                    params: [
+                        { name: "between", value: [{{ threemonthsago }}, {{ end }}] },
+                        { name: "has_zero", value: true },
+                    ],
 
                     encoding: {
                         x: {
@@ -135,7 +159,7 @@
                             field: "value",
                             type: "quantitative",
                             scale: {
-                                domainMin: 0,
+                                zero: { expr: "has_zero" },
                             },
                             axis: {
                                 formatType: "duration",
@@ -179,7 +203,10 @@
                     mark: {
                         type: "circle",
                     },
-                    params: [{ name: "between", value: [{{ threemonthsago }}, {{ end }}] }],
+                    params: [
+                      { name: "between", value: [{{ threemonthsago }}, {{ end }}] },
+                      { name: "has_zero", value: true },
+                    ],
 
                     encoding: {
                         x: {
@@ -192,7 +219,7 @@
                             field: "value",
                             type: "quantitative",
                             scale: {
-                                domainMin: 0,
+                                zero: { expr: "has_zero" },
                             },
                             axis: {
                                 formatType: "duration",
@@ -268,7 +295,7 @@
                             field: "value",
                             type: "quantitative",
                             scale: {
-                                domainMin: 0,
+                                zero: false,
                             },
                             axis: {
                                 grid: false,
@@ -378,7 +405,7 @@
                     "data/compile-time-unix-x86_64-16.mean.json",
                     "Mean Compilation Time (16 cores)",
                 ),
-                { mode: "vega-lite" },
+                { mode: "vega-lite", actions: false },
             ).then((embedded) => {
                 domains["16"] = embedded.view;
                 embedded.view.addSignalListener(
@@ -403,7 +430,7 @@
                     "data/compile-time-unix-x86_64-8.mean.json",
                     "Mean Compilation Time (8 cores)",
                 ),
-                { mode: "vega-lite" },
+                { mode: "vega-lite", actions: false },
             ).then((embedded) => {
                 domains["8"] = embedded.view;
                 embedded.view.addSignalListener(
@@ -429,7 +456,7 @@
                     "data/crate-compile-time-unix-x86_64-16.{{ crate }}.mean.json",
                     "Crate Mean Compilation Time - {{ crate }}",
                 ),
-                { mode: "vega-lite" },
+                { mode: "vega-lite", actions: false },
             ).then((embedded) => {
                 domains["{{ crate }}"] = embedded.view;
                 embedded.view.addSignalListener(
