@@ -55,6 +55,7 @@
                 position: absolute;
                 top: 40px;
                 right: -60px;
+                z-index: 200;
                 transform: rotate(45deg);
                 -webkit-transform: rotate(45deg);
                 -ms-transform: rotate(45deg);
@@ -83,6 +84,14 @@
             .detailedgraph > .domain {
                 width: 80%;
             }
+            #settings {
+                position: sticky;
+                top: 0;
+                background: white;
+                padding: 10px;
+                border: 1px solid #ccc;
+                z-index: 100;
+            }
         </style>
         <script src="https://cdn.jsdelivr.net/npm/vega@6.2.0"></script>
         <script src="https://cdn.jsdelivr.net/npm/vega-lite@6.1.0"></script>
@@ -92,6 +101,19 @@
         <span id="about">
             <a href="https://github.com/bevyengine/twitcher">About</a>
         </span>
+        <div id="settings">
+            Stats about Bevy compilation
+            <br />
+            <label>
+                <input
+                    type="checkbox"
+                    id="has-zero"
+                    checked
+                    onchange="switchZero(this)"
+                />
+                Show zero in graphs
+            </label>
+        </div>
         <div style="display: flex">
             <div id="compilation8" class="maingraph">
                 <div id="graph" class="graph"></div>
@@ -122,6 +144,12 @@
         </div>
 
         <script>
+            function switchZero(element) {
+                for (view in views) {
+                    views[view].signal("has_zero", element.checked).runAsync();
+                }
+            }
+
             vega.expressionFunction("duration", function (ms, params) {
                 const time = {
                     h: Math.floor(ms / 3600000) % 24,
