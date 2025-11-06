@@ -27,12 +27,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     compilation_keys.into_iter().for_each(|metric| {
         let values = stats
             .iter()
-            // .filter(|stat| {
-            //     (chrono::Utc::now()
-            //         - chrono::DateTime::from_timestamp_millis(stat.commit_timestamp as i64)
-            //             .unwrap())
-            //         <= chrono::Duration::days(30)
-            // })
+            .filter(|stat| {
+                (chrono::Utc::now()
+                    - chrono::DateTime::from_timestamp_millis(stat.commit_timestamp as i64)
+                        .unwrap())
+                    <= chrono::Duration::weeks(6 * 4)
+            })
             .flat_map(|stat| {
                 if stat.commit_timestamp < min_timestamp {
                     min_timestamp = stat.commit_timestamp;
