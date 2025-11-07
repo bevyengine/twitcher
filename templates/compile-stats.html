@@ -101,9 +101,9 @@
         <span id="about">
             <a href="https://github.com/bevyengine/twitcher">About</a>
         </span>
-        <div id="settings">
-            Stats about Bevy compilation
-            <br />
+        <div id="settings" style="display: flex; flex-direction: column">
+            <div>Stats about Bevy compilation</div>
+            <div id="domain-controller" class="domain"></div>
             <label>
                 <input
                     type="checkbox"
@@ -111,7 +111,7 @@
                     checked
                     onchange="switchZero(this)"
                 />
-                Show zero in graphs
+                Graphs start at zero
             </label>
         </div>
         <div style="display: flex">
@@ -429,19 +429,6 @@
                 };
             };
 
-            function throttle(func, delay = 50) {
-              let timer = null;
-
-              return (...args) => {
-                if (timer === null) {
-                  func(...args);
-                  timer = setTimeout(() => {
-                    timer = null;
-                  }, delay);
-                }
-              };
-            }
-
             function isEmpty(obj) {
                 for (const prop in obj) {
                     if (Object.hasOwn(obj, prop)) {
@@ -453,62 +440,55 @@
             }
 
             let views = {};
-            let domains = {};
-            let last_values = [[0, 1]];
+            let last = 0;
+            let step = 5;
+            async function refreshViews() {
+                let slice = Object.entries(views).slice(last, last + step);
+                for (i in slice) {
+                    let view = slice[i][1];
+                    view.runAsync();
+                }
+                last = last + step;
+                if (last > Object.keys(views).length) {
+                    last = 0;
+                }
+                setTimeout(refreshViews, 100);
+            }
+            refreshViews();
 
-            function share_interval(emitter, value) {
+            async function share_interval(value) {
                 var percent = [0, 1];
 
                 if (!isEmpty(value)) {
-                    percent = value.map(
-                        (x) => x / domains[emitter].signal("width"),
-                    );
+                    percent = value.map((x) => x / domain.signal("width"));
                     if (value[0] == value[1]) {
                         percent = [0, 1];
                     }
-                    if (value[0] === undefined) {
-                        percent[0] = last_values[last_values.length - 2][0];
-                    }
                 }
-                if (
-                    (percent[0] === 0 &&
-                        percent[1] === 1 &&
-                        last_values[last_values.length - 1][0] === 0) ||
-                    (percent[0] != 0 &&
-                        last_values.find(
-                            (x) => x[0] === percent[0] && x[1] === percent[1],
-                        ))
-                ) {
-                    return;
-                }
-                last_values.push(percent);
-                if (last_values.length > 10) {
-                    last_values.shift();
-                }
-
                 let timestamps = percent.map(
-                    (x) => x * (1760805869000 - 1743541086000) + 1743541086000,
+                    (x) => x * ({{ end }} - {{ start }}) + {{ start }},
                 );
                 for (name in views) {
                     let view = views[name];
-                    view.signal("between", timestamps).runAsync();
-                }
-
-                for (name in domains) {
-                    let view = domains[name];
-                    if (view == emitter) {
-                        continue;
-                    }
-                    if (value[0] == value[1]) {
-                        view.signal("between_x", {});
-                    } else {
-                        view.signal(
-                            "between_x",
-                            percent.map((x) => x * view.signal("width")),
-                        );
-                    }
+                    view.signal("between", timestamps);
                 }
             }
+
+            vegaEmbed(
+                "#domain-controller",
+                domain(
+                    "data/compile-time-unix-x86_64-16.mean.json",
+                    "Mean Compilation Time (16 cores)",
+                ),
+                { mode: "vega-lite", actions: false },
+            ).then((embedded) => {
+                domain = embedded.view;
+
+                embedded.view.addSignalListener(
+                    "between_x",
+                    (_, value) => share_interval(value),
+                );
+            });
 
             vegaEmbed(
                 "#compilation16 > #graph",
@@ -519,20 +499,6 @@
                 { mode: "vega-lite" },
             ).then((embedded) => {
                 views["16"] = embedded.view;
-            });
-            vegaEmbed(
-                "#compilation16 > #domain",
-                domain(
-                    "data/compile-time-unix-x86_64-16.mean.json",
-                    "Mean Compilation Time (16 cores)",
-                ),
-                { mode: "vega-lite", actions: false },
-            ).then((embedded) => {
-                domains["16"] = embedded.view;
-                embedded.view.addSignalListener(
-                    "between_x",
-                    throttle((_, value) => share_interval("16", value)),
-                );
             });
 
             vegaEmbed(
@@ -545,20 +511,6 @@
             ).then((embedded) => {
                 views["8"] = embedded.view;
             });
-            vegaEmbed(
-                "#compilation8 > #domain",
-                domain(
-                    "data/compile-time-unix-x86_64-8.mean.json",
-                    "Mean Compilation Time (8 cores)",
-                ),
-                { mode: "vega-lite", actions: false },
-            ).then((embedded) => {
-                domains["8"] = embedded.view;
-                embedded.view.addSignalListener(
-                    "between_x",
-                    throttle((_, value) => share_interval("8", value)),
-                );
-            });
 
             vegaEmbed(
                 "#sizenative > #graph",
@@ -569,20 +521,6 @@
                 { mode: "vega-lite" },
             ).then((embedded) => {
                 views["size-native"] = embedded.view;
-            });
-            vegaEmbed(
-                "#sizenative > #domain",
-                domain(
-                    "data/native-unix-x86_64.size.json",
-                    "Binary Size (native)",
-                ),
-                { mode: "vega-lite", actions: false },
-            ).then((embedded) => {
-                domains["size-native"] = embedded.view;
-                embedded.view.addSignalListener(
-                    "between_x",
-                    throttle((_, value) => share_interval("8", value)),
-                );
             });
 
             vegaEmbed(
@@ -595,20 +533,6 @@
             ).then((embedded) => {
                 views["size-wasm"] = embedded.view;
             });
-            vegaEmbed(
-                "#sizewasm > #domain",
-                domain(
-                    "data/wasm32-unknown-unknown.optimized.size.json",
-                    "Binary Size (optimised Wasm)",
-                ),
-                { mode: "vega-lite", actions: false },
-            ).then((embedded) => {
-                domains["size-wasm"] = embedded.view;
-                embedded.view.addSignalListener(
-                    "between_x",
-                    throttle((_, value) => share_interval("8", value)),
-                );
-            });
 
             {% for crate in crate_names -%}
             vegaEmbed(
@@ -620,20 +544,6 @@
                 { mode: "vega-lite" },
             ).then((embedded) => {
                 views["{{ crate }}"] = embedded.view;
-            });
-            vegaEmbed(
-                "#{{ crate }} > #domain",
-                domain(
-                    "data/crate-compile-time-unix-x86_64-16.{{ crate }}.mean.json",
-                    "Crate Mean Compilation Time - {{ crate }}",
-                ),
-                { mode: "vega-lite", actions: false },
-            ).then((embedded) => {
-                domains["{{ crate }}"] = embedded.view;
-                embedded.view.addSignalListener(
-                    "between_x",
-                    throttle((_, value) => share_interval("{{ crate }}", value)),
-                );
             });
 
             {% endfor %}
