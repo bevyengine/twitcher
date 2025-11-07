@@ -562,7 +562,7 @@
 
             let views = {};
             let last = 0;
-            let step = 5;
+            let step = 10;
             async function refreshViews() {
                 let slice = Object.entries(views).slice(last, last + step);
                 for (i in slice) {
@@ -572,10 +572,10 @@
                 last = last + step;
                 if (last > Object.keys(views).length) {
                     last = 0;
+                    return;
                 }
                 setTimeout(refreshViews, 100);
             }
-            refreshViews();
 
             async function set_interval(start, end) {
                 let start_percent = (start - {{ start }}) / ({{ end }} - {{ start }});
@@ -603,6 +603,8 @@
                     let view = views[name];
                     view.signal("between", timestamps);
                 }
+                last = 0;
+                setTimeout(refreshViews, 100);
             }
 
             async function toggleDomain(data) {
