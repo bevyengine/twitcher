@@ -70,7 +70,7 @@
                 align-items: center;
             }
             .detailedgraph {
-                width: 25%;
+                width: 24.7%;
                 display: flex;
                 flex-direction: column;
                 align-items: center;
@@ -194,7 +194,14 @@
                 </button>
             </div>
         </div>
-        <div style="display: flex; flex-wrap: wrap; row-gap: 3em">
+        <div
+            style="
+                display: flex;
+                flex-wrap: wrap;
+                row-gap: 2em;
+                justify-content: space-between;
+            "
+        >
             {% for crate in crate_names -%}
             <div id="{{ crate }}" class="detailedgraph">
                 <div id="graph" class="graph"></div>
@@ -645,7 +652,7 @@
                     "data/compile-time-unix-x86_64-16.mean{{ cache_id }}.json",
                     "Mean Compilation Time (16 cores)",
                 ),
-                { mode: "vega-lite", loader: {target: '_blank'}, theme: "carbong90" },
+                { mode: "vega-lite", actions: false, loader: {target: '_blank'}, theme: "carbong90" },
             ).then((embedded) => {
                 views["16"] = embedded.view;
             });
@@ -656,7 +663,7 @@
                     "data/compile-time-unix-x86_64-8.mean{{ cache_id }}.json",
                     "Mean Compilation Time (8 cores)",
                 ),
-                { mode: "vega-lite", loader: {target: '_blank'}, theme: "carbong90" },
+                { mode: "vega-lite", actions: false, loader: {target: '_blank'}, theme: "carbong90" },
             ).then((embedded) => {
                 views["8"] = embedded.view;
             });
@@ -667,7 +674,7 @@
                     "data/native-unix-x86_64.size{{ cache_id }}.json",
                     "Binary Size (native)",
                 ),
-                { mode: "vega-lite", loader: {target: '_blank'}, theme: "carbong90" },
+                { mode: "vega-lite", actions: false, loader: {target: '_blank'}, theme: "carbong90" },
             ).then((embedded) => {
                 views["size-native"] = embedded.view;
             });
@@ -678,7 +685,7 @@
                     "data/wasm32-unknown-unknown.optimized.size{{ cache_id }}.json",
                     "Binary Size (optimised Wasm)",
                 ),
-                { mode: "vega-lite", loader: {target: '_blank'}, theme: "carbong90" },
+                { mode: "vega-lite", actions: false, loader: {target: '_blank'}, theme: "carbong90" },
             ).then((embedded) => {
                 views["size-wasm"] = embedded.view;
             });
@@ -690,7 +697,7 @@
                     "data/crate-compile-time-unix-x86_64-16.{{ crate }}.mean{{ cache_id }}.json",
                     "Crate Mean Compilation Time - {{ crate }}",
                 ),
-                { mode: "vega-lite", loader: {target: '_blank'}, theme: "carbong90" },
+                { mode: "vega-lite", actions: false, loader: {target: '_blank'}, theme: "carbong90" },
             ).then((embedded) => {
                 views["{{ crate }}"] = embedded.view;
             });
