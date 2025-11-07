@@ -121,6 +121,11 @@
             </label>
             <div style="display: flex; justify-content: space-evenly">
                 <div>
+                    <button type="button" onclick="clear_interval()">
+                        None
+                    </button>
+                </div>
+                <div>
                     <button
                         type="button"
                         onclick="set_interval({{ threemonthsago}}, {{ end }})"
@@ -590,6 +595,9 @@
 
                 let width = domain.signal("width");
                 domain.signal("between_x", [start_percent * width, end_percent * width]).runAsync();
+            }
+            async function clear_interval() {
+                domain.signal("between_x", {}).runAsync();
             }
 
             async function share_interval(value) {
