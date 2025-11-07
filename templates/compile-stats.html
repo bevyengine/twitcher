@@ -537,7 +537,7 @@
                     "data/compile-time-unix-x86_64-16.mean.json",
                     "Mean Compilation Time (16 cores)",
                 ),
-                { mode: "vega-lite" },
+                { mode: "vega-lite", loader: {target: '_blank'} },
             ).then((embedded) => {
                 views["16"] = embedded.view;
             });
@@ -548,7 +548,7 @@
                     "data/compile-time-unix-x86_64-8.mean.json",
                     "Mean Compilation Time (8 cores)",
                 ),
-                { mode: "vega-lite" },
+                { mode: "vega-lite", loader: {target: '_blank'} },
             ).then((embedded) => {
                 views["8"] = embedded.view;
             });
@@ -559,7 +559,7 @@
                     "data/native-unix-x86_64.size.json",
                     "Binary Size (native)",
                 ),
-                { mode: "vega-lite" },
+                { mode: "vega-lite", loader: {target: '_blank'} },
             ).then((embedded) => {
                 views["size-native"] = embedded.view;
             });
@@ -570,7 +570,7 @@
                     "data/wasm32-unknown-unknown.optimized.size.json",
                     "Binary Size (optimised Wasm)",
                 ),
-                { mode: "vega-lite" },
+                { mode: "vega-lite", loader: {target: '_blank'} },
             ).then((embedded) => {
                 views["size-wasm"] = embedded.view;
             });
@@ -582,7 +582,7 @@
                     "data/crate-compile-time-unix-x86_64-16.{{ crate }}.mean.json",
                     "Crate Mean Compilation Time - {{ crate }}",
                 ),
-                { mode: "vega-lite" },
+                { mode: "vega-lite", loader: {target: '_blank'} },
             ).then((embedded) => {
                 views["{{ crate }}"] = embedded.view;
             });
