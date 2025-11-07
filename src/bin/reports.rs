@@ -8,6 +8,12 @@ use twitcher::stats::{Stats, find_stats_files};
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let _ = std::fs::create_dir("data");
 
+    let args: Vec<String> = std::env::args().collect();
+    let cache_id = args
+        .get(1)
+        .map(|id| format!(".{id}"))
+        .unwrap_or("".to_string());
+
     let stats: Vec<Stats> = find_stats_files(Path::new("results"))
         .iter()
         .map(|path| {
@@ -48,7 +54,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             })
             .collect::<Vec<_>>();
         serde_json::to_writer(
-            std::fs::File::create(format!("data/{}.json", metric)).unwrap(),
+            std::fs::File::create(format!("data/{metric}{cache_id}.json")).unwrap(),
             &values,
         )
         .unwrap();
@@ -101,6 +107,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             .timestamp()
             * 1000),
     );
+    context.insert("cache_id", &cache_id);
 
     let rendered = tera.render("compile-stats.html", &context).unwrap();
     std::fs::write("./compile-stats.html", &rendered).unwrap();
