@@ -34,7 +34,7 @@ jobs:
           cargo run --bin index
       - name: Build Reports
         run: |
-          cargo run --bin reports
+          cargo run --bin reports -- ${{ github.sha }}
       - name: Prepare Site
         run: |
           mkdir site
