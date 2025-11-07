@@ -55,6 +55,7 @@
                 position: absolute;
                 top: 40px;
                 right: -60px;
+                z-index: 200;
                 transform: rotate(45deg);
                 -webkit-transform: rotate(45deg);
                 -ms-transform: rotate(45deg);
@@ -83,6 +84,14 @@
             .detailedgraph > .domain {
                 width: 80%;
             }
+            #settings {
+                position: sticky;
+                top: 0;
+                background: white;
+                padding: 10px;
+                border: 1px solid #ccc;
+                z-index: 100;
+            }
         </style>
         <script src="https://cdn.jsdelivr.net/npm/vega@6.2.0"></script>
         <script src="https://cdn.jsdelivr.net/npm/vega-lite@6.1.0"></script>
@@ -92,26 +101,80 @@
         <span id="about">
             <a href="https://github.com/bevyengine/twitcher">About</a>
         </span>
+        <div id="settings" style="display: flex; flex-direction: column">
+            <div>Stats about Bevy compilation</div>
+            <div id="domain-controller" class="domain"></div>
+            <label>
+                <input
+                    type="checkbox"
+                    id="has-zero"
+                    checked
+                    onchange="switchZero(this)"
+                />
+                Graphs start at zero
+            </label>
+        </div>
         <div style="display: flex">
             <div id="compilation8" class="maingraph">
                 <div id="graph" class="graph"></div>
-                <div id="domain" class="domain"></div>
+                <button
+                    type="button"
+                    onclick="toggleDomain('data/compile-time-unix-x86_64-8.mean.json')"
+                >
+                    Use as Domain
+                </button>
             </div>
             <div id="compilation16" class="maingraph">
                 <div id="graph" class="graph"></div>
-                <div id="domain" class="domain"></div>
+                <button
+                    type="button"
+                    onclick="toggleDomain('data/compile-time-unix-x86_64-16.mean.json')"
+                >
+                    Use as Domain
+                </button>
+            </div>
+        </div>
+        <div style="display: flex">
+            <div id="sizenative" class="maingraph">
+                <div id="graph" class="graph"></div>
+                <button
+                    type="button"
+                    onclick="toggleDomain('data/native-unix-x86_64.size.json')"
+                >
+                    Use as Domain
+                </button>
+            </div>
+            <div id="sizewasm" class="maingraph">
+                <div id="graph" class="graph"></div>
+                <button
+                    type="button"
+                    onclick="toggleDomain('data/wasm32-unknown-unknown.optimized.size.json')"
+                >
+                    Use as Domain
+                </button>
             </div>
         </div>
         <div style="display: flex; flex-wrap: wrap">
             {% for crate in crate_names -%}
             <div id="{{ crate }}" class="detailedgraph">
                 <div id="graph" class="graph"></div>
-                <div id="domain" class="domain"></div>
+                <button
+                    type="button"
+                    onclick="toggleDomain('data/crate-compile-time-unix-x86_64-16.{{ crate }}.mean.json')"
+                >
+                    Toggle Domain
+                </button>
             </div>
             {% endfor %}
         </div>
 
         <script>
+            function switchZero(element) {
+                for (view in views) {
+                    views[view].signal("has_zero", element.checked).runAsync();
+                }
+            }
+
             vega.expressionFunction("duration", function (ms, params) {
                 const time = {
                     h: Math.floor(ms / 3600000) % 24,
@@ -123,6 +186,29 @@
                     .filter((val) => val[1] !== 0)
                     .map(([key, val]) => `${val}${key}`)
                     .join(" ");
+            });
+            vega.expressionFunction("filesize", function (ms, params) {
+                const size = {
+                    gb: Math.floor(ms / (1024**3)) % 1024,
+                    mb: Math.floor(ms / (1024**2)) % 1024,
+                    kb: Math.floor(ms / 1024) % 1024,
+                    b: Math.floor(ms) % 1024,
+                };
+                return Object.entries(size)
+                    .filter((val) => val[1] !== 0)
+                    .map(([key, val]) => `${val}${key}`)
+                    .join(" ");
+            });
+            vega.expressionFunction("filesizeshort", function (ms, params) {
+                const size = {
+                    gb: Math.floor(ms / (1024**3)) % 1024,
+                    mb: Math.floor(ms / (1024**2)) % 1024,
+                    kb: Math.floor(ms / 1024) % 1024,
+                    b: Math.floor(ms) % 1024,
+                };
+                return Object.entries(size)
+                    .filter((val) => val[1] !== 0)
+                    .map(([key, val]) => `${val}${key}`)[0];
             });
 
             compilationTime = (file, title) => {
@@ -171,6 +257,66 @@
                                 field: "value",
                                 formatType: "duration",
                                 title: "Duration",
+                            },
+                            { field: "commit" },
+                            {
+                                field: "timestamp",
+                                title: "Time",
+                                type: "temporal",
+                                format: "%Y-%m-%d %H:%M:%S",
+                            }
+                        ],
+                        href: { field: "url", type: "nominal" },
+                    },
+                    config: { customFormatTypes: true }
+                };
+            };
+            size = (file, title) => {
+                return {
+                    $schema: "https://vega.github.io/schema/vega-lite/v6.json",
+                    data: {
+                        url: file,
+                    },
+                    width: "container",
+                    transform: [
+                        {
+                            calculate:
+                                "'https://github.com/bevyengine/bevy/commit/' + datum.commit",
+                            as: "url",
+                        },
+                    ],
+                    title: title,
+                    mark: {
+                        type: "line",
+                    },
+                    params: [
+                        { name: "between", value: [{{ threemonthsago }}, {{ end }}] },
+                        { name: "has_zero", value: true },
+                    ],
+
+                    encoding: {
+                        x: {
+                            title: "",
+                            field: "timestamp",
+                            type: "temporal",
+                            scale: {domain: {selection: "between"}},
+                        },
+                        y: {
+                            field: "value",
+                            type: "quantitative",
+                            scale: {
+                                zero: { expr: "has_zero" },
+                            },
+                            axis: {
+                                formatType: "filesizeshort",
+                            },
+                            title: "Size",
+                        },
+                        tooltip: [
+                            {
+                                field: "value",
+                                formatType: "filesize",
+                                title: "Size",
                             },
                             { field: "commit" },
                             {
@@ -241,28 +387,28 @@
                             }
                         ],
                         href: { field: "url", type: "nominal" },
-                        color: {
-                            condition: [
-                                {
-                                    test: "datum.value > 20000",
-                                    value: "red",
-                                },
-                                {
-                                    test: "datum.value > 10000",
-                                    value: "orange",
-                                },
-                            ],
-                            value: "green",
-                        },
+                        // color: {
+                        //     condition: [
+                        //         {
+                        //             test: "datum.value > 20000",
+                        //             value: "red",
+                        //         },
+                        //         {
+                        //             test: "datum.value > 10000",
+                        //             value: "orange",
+                        //         },
+                        //     ],
+                        //     value: "green",
+                        // },
                     },
                     config: { customFormatTypes: true }
                 };
             };
-            domain = (file, title) => {
+            domain = () => {
                 return {
                     $schema: "https://vega.github.io/schema/vega-lite/v6.json",
                     data: {
-                        url: file,
+                        name: "DomainData",
                     },
                     width: "container",
                     height: 60,
@@ -308,19 +454,6 @@
                 };
             };
 
-            function throttle(func, delay = 50) {
-              let timer = null;
-
-              return (...args) => {
-                if (timer === null) {
-                  func(...args);
-                  timer = setTimeout(() => {
-                    timer = null;
-                  }, delay);
-                }
-              };
-            }
-
             function isEmpty(obj) {
                 for (const prop in obj) {
                     if (Object.hasOwn(obj, prop)) {
@@ -332,62 +465,71 @@
             }
 
             let views = {};
-            let domains = {};
-            let last_values = [[0, 1]];
+            let last = 0;
+            let step = 5;
+            async function refreshViews() {
+                let slice = Object.entries(views).slice(last, last + step);
+                for (i in slice) {
+                    let view = slice[i][1];
+                    view.runAsync();
+                }
+                last = last + step;
+                if (last > Object.keys(views).length) {
+                    last = 0;
+                }
+                setTimeout(refreshViews, 100);
+            }
+            refreshViews();
 
-            function share_interval(emitter, value) {
+            async function share_interval(value) {
                 var percent = [0, 1];
 
                 if (!isEmpty(value)) {
-                    percent = value.map(
-                        (x) => x / domains[emitter].signal("width"),
-                    );
+                    percent = value.map((x) => x / domain.signal("width"));
                     if (value[0] == value[1]) {
                         percent = [0, 1];
                     }
-                    if (value[0] === undefined) {
-                        percent[0] = last_values[last_values.length - 2][0];
-                    }
                 }
-                if (
-                    (percent[0] === 0 &&
-                        percent[1] === 1 &&
-                        last_values[last_values.length - 1][0] === 0) ||
-                    (percent[0] != 0 &&
-                        last_values.find(
-                            (x) => x[0] === percent[0] && x[1] === percent[1],
-                        ))
-                ) {
-                    return;
-                }
-                last_values.push(percent);
-                if (last_values.length > 10) {
-                    last_values.shift();
-                }
-
                 let timestamps = percent.map(
-                    (x) => x * (1760805869000 - 1743541086000) + 1743541086000,
+                    (x) => x * ({{ end }} - {{ start }}) + {{ start }},
                 );
                 for (name in views) {
                     let view = views[name];
-                    view.signal("between", timestamps).runAsync();
-                }
-
-                for (name in domains) {
-                    let view = domains[name];
-                    if (view == emitter) {
-                        continue;
-                    }
-                    if (value[0] == value[1]) {
-                        view.signal("between_x", {});
-                    } else {
-                        view.signal(
-                            "between_x",
-                            percent.map((x) => x * view.signal("width")),
-                        );
-                    }
+                    view.signal("between", timestamps);
                 }
             }
+
+            async function toggleDomain(data) {
+                fetch(data)
+                    .then((response) => response.json())
+                    .then((json) => {
+                        domain
+                            .change(
+                                "DomainData",
+                                vega.changeset().remove((_) => true),
+                            )
+                            .run();
+                        domain.insert("DomainData", json).runAsync();
+                    });
+            }
+
+            vegaEmbed(
+                "#domain-controller",
+                domain(),
+                { mode: "vega-lite", actions: false },
+            ).then((embedded) => {
+                domain = embedded.view;
+                fetch("data/compile-time-unix-x86_64-16.mean.json")
+                    .then((response) => response.json())
+                    .then((json) =>
+                        domain.insert("DomainData", json).runAsync(),
+                    );
+
+                embedded.view.addSignalListener(
+                    "between_x",
+                    (_, value) => share_interval(value),
+                );
+            });
 
             vegaEmbed(
                 "#compilation16 > #graph",
@@ -398,20 +540,6 @@
                 { mode: "vega-lite" },
             ).then((embedded) => {
                 views["16"] = embedded.view;
-            });
-            vegaEmbed(
-                "#compilation16 > #domain",
-                domain(
-                    "data/compile-time-unix-x86_64-16.mean.json",
-                    "Mean Compilation Time (16 cores)",
-                ),
-                { mode: "vega-lite", actions: false },
-            ).then((embedded) => {
-                domains["16"] = embedded.view;
-                embedded.view.addSignalListener(
-                    "between_x",
-                    throttle((_, value) => share_interval("16", value)),
-                );
             });
 
             vegaEmbed(
@@ -424,19 +552,27 @@
             ).then((embedded) => {
                 views["8"] = embedded.view;
             });
+
             vegaEmbed(
-                "#compilation8 > #domain",
-                domain(
-                    "data/compile-time-unix-x86_64-8.mean.json",
-                    "Mean Compilation Time (8 cores)",
+                "#sizenative > #graph",
+                size(
+                    "data/native-unix-x86_64.size.json",
+                    "Binary Size (native)",
                 ),
-                { mode: "vega-lite", actions: false },
+                { mode: "vega-lite" },
             ).then((embedded) => {
-                domains["8"] = embedded.view;
-                embedded.view.addSignalListener(
-                    "between_x",
-                    throttle((_, value) => share_interval("8", value)),
-                );
+                views["size-native"] = embedded.view;
+            });
+
+            vegaEmbed(
+                "#sizewasm > #graph",
+                size(
+                    "data/wasm32-unknown-unknown.optimized.size.json",
+                    "Binary Size (optimised Wasm)",
+                ),
+                { mode: "vega-lite" },
+            ).then((embedded) => {
+                views["size-wasm"] = embedded.view;
             });
 
             {% for crate in crate_names -%}
@@ -449,20 +585,6 @@
                 { mode: "vega-lite" },
             ).then((embedded) => {
                 views["{{ crate }}"] = embedded.view;
-            });
-            vegaEmbed(
-                "#{{ crate }} > #domain",
-                domain(
-                    "data/crate-compile-time-unix-x86_64-16.{{ crate }}.mean.json",
-                    "Crate Mean Compilation Time - {{ crate }}",
-                ),
-                { mode: "vega-lite", actions: false },
-            ).then((embedded) => {
-                domains["{{ crate }}"] = embedded.view;
-                embedded.view.addSignalListener(
-                    "between_x",
-                    throttle((_, value) => share_interval("{{ crate }}", value)),
-                );
             });
 
             {% endfor %}
