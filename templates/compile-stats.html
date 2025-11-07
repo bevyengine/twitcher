@@ -3,66 +3,6 @@
     <head>
         <title>Bevy Bench Report</title>
         <style>
-            #about a {
-                background: #000;
-                color: #fff;
-                text-decoration: none;
-                font-family: arial, sans-serif;
-                text-align: center;
-                font-weight: bold;
-                /* padding: 5px 40px; */
-                font-size: 1rem;
-                line-height: 2rem;
-                position: relative;
-                transition: 0.5s;
-            }
-
-            #about a:hover {
-                background: #c11;
-                color: #fff;
-            }
-
-            #about a::before,
-            #about a::after {
-                content: "";
-                width: 100%;
-                display: block;
-                position: absolute;
-                top: 1px;
-                left: 0;
-                height: 1px;
-                background: #fff;
-            }
-
-            #about a::after {
-                bottom: 1px;
-                top: auto;
-            }
-
-            #about {
-                position: fixed;
-                display: block;
-                top: -20px;
-                right: 0;
-                width: 200px;
-                overflow: hidden;
-                height: 200px;
-                z-index: 9999;
-            }
-
-            #about a {
-                width: 200px;
-                position: absolute;
-                top: 40px;
-                right: -60px;
-                z-index: 200;
-                transform: rotate(45deg);
-                -webkit-transform: rotate(45deg);
-                -ms-transform: rotate(45deg);
-                -moz-transform: rotate(45deg);
-                -o-transform: rotate(45deg);
-                box-shadow: 4px 4px 10px rgba(0, 0, 0, 0.8);
-            }
             .maingraph {
                 width: 50%;
                 display: flex;
@@ -104,9 +44,6 @@
         />
     </head>
     <body style="background-color: rgb(38, 38, 38)">
-        <span id="about">
-            <a href="https://github.com/bevyengine/twitcher">About</a>
-        </span>
         <div id="settings" style="display: flex; flex-direction: column">
             <div>Stats about Bevy compilation</div>
             <div id="domain-controller" class="domain"></div>
@@ -159,7 +96,7 @@
                 </div>
             </div>
         </div>
-        <div style="display: flex; padding-bottom: 3em">
+        <div style="display: flex; padding-bottom: 2em">
             <div id="compilation8" class="maingraph">
                 <div id="graph" class="graph"></div>
                 <button
@@ -179,7 +116,7 @@
                 </button>
             </div>
         </div>
-        <div style="display: flex; padding-bottom: 3em">
+        <div style="display: flex; padding-bottom: 2em">
             <div id="sizenative" class="maingraph">
                 <div id="graph" class="graph"></div>
                 <button
