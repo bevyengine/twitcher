@@ -117,28 +117,53 @@
         <div style="display: flex">
             <div id="compilation8" class="maingraph">
                 <div id="graph" class="graph"></div>
-                <div id="domain" class="domain"></div>
+                <button
+                    type="button"
+                    onclick="toggleDomain('data/compile-time-unix-x86_64-8.mean.json')"
+                >
+                    Use as Domain
+                </button>
             </div>
             <div id="compilation16" class="maingraph">
                 <div id="graph" class="graph"></div>
-                <div id="domain" class="domain"></div>
+                <button
+                    type="button"
+                    onclick="toggleDomain('data/compile-time-unix-x86_64-16.mean.json')"
+                >
+                    Use as Domain
+                </button>
             </div>
         </div>
         <div style="display: flex">
             <div id="sizenative" class="maingraph">
                 <div id="graph" class="graph"></div>
-                <div id="domain" class="domain"></div>
+                <button
+                    type="button"
+                    onclick="toggleDomain('data/native-unix-x86_64.size.json')"
+                >
+                    Use as Domain
+                </button>
             </div>
             <div id="sizewasm" class="maingraph">
                 <div id="graph" class="graph"></div>
-                <div id="domain" class="domain"></div>
+                <button
+                    type="button"
+                    onclick="toggleDomain('data/wasm32-unknown-unknown.optimized.size.json')"
+                >
+                    Use as Domain
+                </button>
             </div>
         </div>
         <div style="display: flex; flex-wrap: wrap">
             {% for crate in crate_names -%}
             <div id="{{ crate }}" class="detailedgraph">
                 <div id="graph" class="graph"></div>
-                <div id="domain" class="domain"></div>
+                <button
+                    type="button"
+                    onclick="toggleDomain('data/crate-compile-time-unix-x86_64-16.{{ crate }}.mean.json')"
+                >
+                    Toggle Domain
+                </button>
             </div>
             {% endfor %}
         </div>
@@ -379,11 +404,11 @@
                     config: { customFormatTypes: true }
                 };
             };
-            domain = (file, title) => {
+            domain = () => {
                 return {
                     $schema: "https://vega.github.io/schema/vega-lite/v6.json",
                     data: {
-                        url: file,
+                        name: "DomainData",
                     },
                     width: "container",
                     height: 60,
@@ -474,15 +499,31 @@
                 }
             }
 
+            async function toggleDomain(data) {
+                fetch(data)
+                    .then((response) => response.json())
+                    .then((json) => {
+                        domain
+                            .change(
+                                "DomainData",
+                                vega.changeset().remove((_) => true),
+                            )
+                            .run();
+                        domain.insert("DomainData", json).runAsync();
+                    });
+            }
+
             vegaEmbed(
                 "#domain-controller",
-                domain(
-                    "data/compile-time-unix-x86_64-16.mean.json",
-                    "Mean Compilation Time (16 cores)",
-                ),
+                domain(),
                 { mode: "vega-lite", actions: false },
             ).then((embedded) => {
                 domain = embedded.view;
+                fetch("data/compile-time-unix-x86_64-16.mean.json")
+                    .then((response) => response.json())
+                    .then((json) =>
+                        domain.insert("DomainData", json).runAsync(),
+                    );
 
                 embedded.view.addSignalListener(
                     "between_x",
