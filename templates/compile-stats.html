@@ -265,14 +265,39 @@
                         },
                     ],
                     title: title,
-                    mark: {
-                        type: "line",
-                    },
                     params: [
                         { name: "between", value: [{{ threemonthsago }}, {{ end }}] },
                         { name: "has_zero", value: true },
                     ],
 
+                    layer: [
+                    {mark: {
+                        type: "line",
+                    },
+                    encoding: {
+                        x: {
+                            title: "",
+                            field: "timestamp",
+                            type: "temporal",
+                            scale: {domain: {selection: "between"}},
+                        },
+                        y: {
+                            field: "value",
+                            type: "quantitative",
+                            scale: {
+                                zero: { expr: "has_zero" },
+                            },
+                            axis: {
+                                formatType: "duration",
+                            },
+                            title: "Duration",
+                        },
+                    }},
+                    {mark: {
+                        type: "circle",
+                        size: 20,
+                        fill: "rgb(76, 120, 168)",
+                    },
                     encoding: {
                         x: {
                             title: "",
@@ -306,7 +331,8 @@
                             }
                         ],
                         href: { field: "url", type: "nominal" },
-                    },
+                    }},
+                    ],
                     config: { customFormatTypes: true }
                 };
             };
@@ -325,14 +351,39 @@
                         },
                     ],
                     title: title,
-                    mark: {
-                        type: "line",
-                    },
                     params: [
                         { name: "between", value: [{{ threemonthsago }}, {{ end }}] },
                         { name: "has_zero", value: true },
                     ],
 
+                    layer: [
+                    {mark: {
+                        type: "line",
+                    },
+                    encoding: {
+                        x: {
+                            title: "",
+                            field: "timestamp",
+                            type: "temporal",
+                            scale: {domain: {selection: "between"}},
+                        },
+                        y: {
+                            field: "value",
+                            type: "quantitative",
+                            scale: {
+                                zero: { expr: "has_zero" },
+                            },
+                            axis: {
+                                formatType: "filesizeshort",
+                            },
+                            title: "Size",
+                        },
+                    }},
+                    {mark: {
+                        type: "circle",
+                        size: 20,
+                        fill: "rgb(76, 120, 168)",
+                    },
                     encoding: {
                         x: {
                             title: "",
@@ -366,7 +417,8 @@
                             }
                         ],
                         href: { field: "url", type: "nominal" },
-                    },
+                    }},
+                    ],
                     config: { customFormatTypes: true }
                 };
             };
