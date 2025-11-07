@@ -1,6 +1,6 @@
 use std::{collections::HashSet, fs::File, io::BufReader, path::Path};
 
-use chrono::Months;
+use chrono::{Days, Months};
 use serde::Serialize;
 use tera::Tera;
 use twitcher::stats::{Stats, find_stats_files};
@@ -73,6 +73,30 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         "threemonthsago",
         &(chrono::Utc::now()
             .checked_sub_months(Months::new(3))
+            .unwrap()
+            .timestamp()
+            * 1000),
+    );
+    context.insert(
+        "onemonthago",
+        &(chrono::Utc::now()
+            .checked_sub_months(Months::new(1))
+            .unwrap()
+            .timestamp()
+            * 1000),
+    );
+    context.insert(
+        "twoweeksago",
+        &(chrono::Utc::now()
+            .checked_sub_days(Days::new(14))
+            .unwrap()
+            .timestamp()
+            * 1000),
+    );
+    context.insert(
+        "oneweekago",
+        &(chrono::Utc::now()
+            .checked_sub_days(Days::new(7))
             .unwrap()
             .timestamp()
             * 1000),

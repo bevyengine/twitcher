@@ -118,6 +118,40 @@
                 />
                 Graphs start at zero
             </label>
+            <div style="display: flex; justify-content: space-evenly">
+                <div>
+                    <button
+                        type="button"
+                        onclick="set_interval({{ threemonthsago}}, {{ end }})"
+                    >
+                        Last 3 months
+                    </button>
+                </div>
+                <div>
+                    <button
+                        type="button"
+                        onclick="set_interval({{ onemonthago}}, {{ end }})"
+                    >
+                        Last month
+                    </button>
+                </div>
+                <div>
+                    <button
+                        type="button"
+                        onclick="set_interval({{ twoweeksago}}, {{ end }})"
+                    >
+                        Last 2 weeks
+                    </button>
+                </div>
+                <div>
+                    <button
+                        type="button"
+                        onclick="set_interval({{ oneweekago}}, {{ end }})"
+                    >
+                        Last week
+                    </button>
+                </div>
+            </div>
         </div>
         <div style="display: flex">
             <div id="compilation8" class="maingraph">
@@ -486,11 +520,21 @@
             }
             refreshViews();
 
+            async function set_interval(start, end) {
+                let start_percent = (start - {{ start }}) / ({{ end }} - {{ start }});
+                let end_percent = (end - {{ start }}) / ({{ end }} - {{ start }});
+
+                let width = domain.signal("width");
+                domain.signal("between_x", [start_percent * width, end_percent * width]).runAsync();
+            }
+
             async function share_interval(value) {
+
                 var percent = [0, 1];
 
                 if (!isEmpty(value)) {
-                    percent = value.map((x) => x / domain.signal("width"));
+                    let width = domain.signal("width");
+                    percent = value.map((x) => x / width);
                     if (value[0] == value[1]) {
                         percent = [0, 1];
                     }
