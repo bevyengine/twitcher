@@ -37,7 +37,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 (chrono::Utc::now()
                     - chrono::DateTime::from_timestamp_millis(stat.commit_timestamp as i64)
                         .unwrap())
-                    <= chrono::Duration::weeks(6 * 4)
+                    <= chrono::Duration::weeks(26)
             })
             .flat_map(|stat| {
                 if stat.commit_timestamp < min_timestamp {
