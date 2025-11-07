@@ -537,6 +537,7 @@
                 domain.signal("between_x", {}).runAsync();
             }
 
+            timestamps = [];
             async function share_interval(value) {
 
                 var percent = [0, 1];
@@ -548,7 +549,7 @@
                         percent = [0, 1];
                     }
                 }
-                let timestamps = percent.map(
+                timestamps = percent.map(
                     (x) => x * ({{ end }} - {{ start }}) + {{ start }},
                 );
                 for (name in views) {
@@ -635,18 +636,35 @@
                 views["size-wasm"] = embedded.view;
             });
 
-            {% for crate in crate_names -%}
-            vegaEmbed(
-                "#{{ crate }} > #graph",
-                crateCompilationTime(
-                    "data/crate-compile-time-unix-x86_64-16.{{ crate }}.mean{{ cache_id }}.json",
-                    "Crate Mean Compilation Time - {{ crate }}",
-                ),
-                { mode: "vega-lite", actions: false, loader: {target: '_blank'}, theme: "carbong90" },
-            ).then((embedded) => {
-                views["{{ crate }}"] = embedded.view;
-            });
 
+            lazyLoading = (id) => {
+                const elem = document.getElementById(id);
+                const checkVisibility = () => {
+                  if (elem.getBoundingClientRect().top < window.innerHeight && elem.getBoundingClientRect().bottom > 0) {
+                        window.removeEventListener('scroll', checkVisibility )
+
+                        vegaEmbed(
+                            "#" + id + " > #graph",
+                            crateCompilationTime(
+                                "data/crate-compile-time-unix-x86_64-16." + id + ".mean{{ cache_id }}.json",
+                                "Crate Mean Compilation Time - " + id,
+                            ),
+                            { mode: "vega-lite", actions: false, loader: {target: '_blank'}, theme: "carbong90" },
+                        ).then((embedded) => {
+                            views[id] = embedded.view;
+                            if (timestamps.length > 0) {
+                                embedded.view.signal("between", timestamps).runAsync();
+                            }
+                        });
+
+
+                    }
+                }
+                window.addEventListener('scroll', checkVisibility);
+            }
+
+            {% for crate in crate_names -%}
+            lazyLoading("{{ crate }}");
             {% endfor %}
         </script>
     </body>
