@@ -60,33 +60,33 @@
                 <div>
                     <button
                         type="button"
-                        onclick="set_interval({{ threemonthsago}}, {{ end }})"
+                        onclick="set_interval({{ end }} - {{ threemonthsago}})"
                     >
-                        Last 3 months
+                        3 months
                     </button>
                 </div>
                 <div>
                     <button
                         type="button"
-                        onclick="set_interval({{ onemonthago}}, {{ end }})"
+                        onclick="set_interval({{ end }} - {{ onemonthago}})"
                     >
-                        Last month
+                        1 month
                     </button>
                 </div>
                 <div>
                     <button
                         type="button"
-                        onclick="set_interval({{ twoweeksago}}, {{ end }})"
+                        onclick="set_interval({{ end }} - {{ twoweeksago}})"
                     >
-                        Last 2 weeks
+                        12 weeks
                     </button>
                 </div>
                 <div>
                     <button
                         type="button"
-                        onclick="set_interval({{ oneweekago}}, {{ end }})"
+                        onclick="set_interval({{ end }} - {{ oneweekago}})"
                     >
-                        Last week
+                        1 week
                     </button>
                 </div>
             </div>
@@ -535,7 +535,12 @@
                 setTimeout(refreshViews, 100);
             }
 
-            async function set_interval(start, end) {
+            async function set_interval(duration) {
+                var end = {{ end }};
+                if (timestamps.length == 2) {
+                    end = timestamps[1];
+                }
+                start = end - duration;
                 let start_percent = (start - {{ start }}) / ({{ end }} - {{ start }});
                 let end_percent = (end - {{ start }}) / ({{ end }} - {{ start }});
 
