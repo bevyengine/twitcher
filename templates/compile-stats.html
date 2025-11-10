@@ -11,6 +11,7 @@
             }
             .detailedgraph {
                 width: 24.7%;
+                min-width: 400px;
                 display: flex;
                 flex-direction: column;
                 align-items: center;
@@ -18,12 +19,6 @@
             .graph {
                 width: 100%;
                 height: 300px;
-            }
-            .maingraph > .domain {
-                width: 90%;
-            }
-            .detailedgraph > .domain {
-                width: 80%;
             }
             #settings {
                 position: sticky;
@@ -96,7 +91,14 @@
                 </div>
             </div>
         </div>
-        <div style="display: flex; padding-bottom: 2em">
+        <div
+            style="
+                display: flex;
+                flex-wrap: wrap;
+                row-gap: 2em;
+                justify-content: space-around;
+            "
+        >
             <div id="compilation8" class="maingraph">
                 <div id="graph" class="graph"></div>
                 <button
@@ -115,8 +117,6 @@
                     Use as Domain
                 </button>
             </div>
-        </div>
-        <div style="display: flex; padding-bottom: 2em">
             <div id="sizenative" class="maingraph">
                 <div id="graph" class="graph"></div>
                 <button
@@ -135,15 +135,6 @@
                     Use as Domain
                 </button>
             </div>
-        </div>
-        <div
-            style="
-                display: flex;
-                flex-wrap: wrap;
-                row-gap: 2em;
-                justify-content: space-between;
-            "
-        >
             {% for crate in crate_names -%}
             <div id="{{ crate }}" class="detailedgraph">
                 <div id="graph" class="graph"></div>
