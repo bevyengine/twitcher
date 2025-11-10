@@ -90,6 +90,16 @@
                     </button>
                 </div>
             </div>
+            <div>
+                <a
+                    href="https://github.com/bevyengine/bevy"
+                    target="_blank"
+                    id="bevy-link"
+                    style="color: white"
+                >
+                    Bevy
+                </a>
+            </div>
         </div>
         <div
             style="
@@ -202,7 +212,7 @@
                     transform: [
                         {
                             calculate:
-                                "'https://github.com/bevyengine/bevy/commit/' + datum.commit",
+                                "'/compile-stats.html#' + datum.commit",
                             as: "url",
                         },
                     ],
@@ -210,6 +220,7 @@
                     params: [
                         { name: "between", value: [{{ threemonthsago }}, {{ end }}] },
                         { name: "has_zero", value: true },
+                        { name: "highlight", value: "" },
                     ],
 
                     layer: [
@@ -238,7 +249,7 @@
                     {mark: {
                         type: "circle",
                         size: 20,
-                        fill: "rgb(76, 120, 168)",
+                        // fill: "rgb(76, 120, 168)",
                     },
                     encoding: {
                         x: {
@@ -273,6 +284,15 @@
                             }
                         ],
                         href: { field: "url", type: "nominal" },
+                        color: {
+                            condition: [
+                                {
+                                    test: { field: "commit", equal: {expr: "highlight"} },
+                                    value: "rgb(200, 20, 0)",
+                                },
+                            ],
+                            value: "rgb(76, 120, 168)",
+                        },
                     }},
                     ],
                     config: { customFormatTypes: true }
@@ -289,7 +309,7 @@
                     transform: [
                         {
                             calculate:
-                                "'https://github.com/bevyengine/bevy/commit/' + datum.commit",
+                                "'/compile-stats.html#' + datum.commit",
                             as: "url",
                         },
                     ],
@@ -297,6 +317,7 @@
                     params: [
                         { name: "between", value: [{{ threemonthsago }}, {{ end }}] },
                         { name: "has_zero", value: true },
+                        { name: "highlight", value: "" },
                     ],
 
                     layer: [
@@ -324,8 +345,6 @@
                     }},
                     {mark: {
                         type: "circle",
-                        size: 20,
-                        fill: "rgb(76, 120, 168)",
                     },
                     encoding: {
                         x: {
@@ -360,6 +379,15 @@
                             }
                         ],
                         href: { field: "url", type: "nominal" },
+                        color: {
+                            condition: [
+                                {
+                                    test: { field: "commit", equal: {expr: "highlight"} },
+                                    value: "rgb(200, 20, 0)",
+                                },
+                            ],
+                            value: "rgb(76, 120, 168)",
+                        },
                     }},
                     ],
                     config: { customFormatTypes: true }
@@ -376,7 +404,7 @@
                     transform: [
                         {
                             calculate:
-                                "'https://github.com/bevyengine/bevy/commit/' + datum.commit",
+                              "'/compile-stats.html#' + datum.commit",
                             as: "url",
                         },
                     ],
@@ -387,6 +415,7 @@
                     params: [
                       { name: "between", value: [{{ threemonthsago }}, {{ end }}] },
                       { name: "has_zero", value: true },
+                      { name: "highlight", value: "" },
                     ],
 
                     encoding: {
@@ -422,19 +451,15 @@
                             }
                         ],
                         href: { field: "url", type: "nominal" },
-                        // color: {
-                        //     condition: [
-                        //         {
-                        //             test: "datum.value > 20000",
-                        //             value: "red",
-                        //         },
-                        //         {
-                        //             test: "datum.value > 10000",
-                        //             value: "orange",
-                        //         },
-                        //     ],
-                        //     value: "green",
-                        // },
+                        color: {
+                            condition: [
+                                {
+                                    test: { field: "commit", equal: {expr: "highlight"} },
+                                    value: "rgb(200, 20, 0)",
+                                },
+                            ],
+                            value: "rgb(76, 120, 168)",
+                        },
                     },
                     config: { customFormatTypes: true }
                 };
@@ -448,13 +473,6 @@
                     width: "container",
                     height: "container",
                     height: 60,
-                    transform: [
-                        {
-                            calculate:
-                                "'https://github.com/bevyengine/bevy/commit/' + datum.commit",
-                            as: "url",
-                        },
-                    ],
                     selection: {
                         between: {
                             type: "interval",
@@ -529,6 +547,7 @@
             }
 
             timestamps = [];
+            highlightedCommit = window.location.hash.split("#")[1];
             async function share_interval(value) {
 
                 var percent = [0, 1];
@@ -589,9 +608,12 @@
                     "data/compile-time-unix-x86_64-16.mean{{ cache_id }}.json",
                     "Mean Compilation Time (16 cores)",
                 ),
-                { mode: "vega-lite", actions: false, loader: {target: '_blank'}, theme: "carbong90" },
+                { mode: "vega-lite", actions: false, theme: "carbong90" },
             ).then((embedded) => {
                 views["16"] = embedded.view;
+                if (highlightedCommit !== undefined) {
+                    embedded.view.signal("highlight", highlightedCommit).runAsync();
+                }
             });
 
             vegaEmbed(
@@ -600,9 +622,12 @@
                     "data/compile-time-unix-x86_64-8.mean{{ cache_id }}.json",
                     "Mean Compilation Time (8 cores)",
                 ),
-                { mode: "vega-lite", actions: false, loader: {target: '_blank'}, theme: "carbong90" },
+                { mode: "vega-lite", actions: false, theme: "carbong90" },
             ).then((embedded) => {
                 views["8"] = embedded.view;
+                if (highlightedCommit !== undefined) {
+                    embedded.view.signal("highlight", highlightedCommit).runAsync();
+                }
             });
 
             vegaEmbed(
@@ -611,9 +636,12 @@
                     "data/native-unix-x86_64.size{{ cache_id }}.json",
                     "Binary Size (native)",
                 ),
-                { mode: "vega-lite", actions: false, loader: {target: '_blank'}, theme: "carbong90" },
+                { mode: "vega-lite", actions: false, theme: "carbong90" },
             ).then((embedded) => {
                 views["size-native"] = embedded.view;
+                if (highlightedCommit !== undefined) {
+                    embedded.view.signal("highlight", highlightedCommit).runAsync();
+                }
             });
 
             vegaEmbed(
@@ -622,9 +650,12 @@
                     "data/wasm32-unknown-unknown.optimized.size{{ cache_id }}.json",
                     "Binary Size (optimised Wasm)",
                 ),
-                { mode: "vega-lite", actions: false, loader: {target: '_blank'}, theme: "carbong90" },
+                { mode: "vega-lite", actions: false, theme: "carbong90" },
             ).then((embedded) => {
                 views["size-wasm"] = embedded.view;
+                if (highlightedCommit !== undefined) {
+                    embedded.view.signal("highlight", highlightedCommit).runAsync();
+                }
             });
 
 
@@ -640,11 +671,14 @@
                                 "data/crate-compile-time-unix-x86_64-16." + id + ".mean{{ cache_id }}.json",
                                 "Crate Mean Compilation Time - " + id,
                             ),
-                            { mode: "vega-lite", actions: false, loader: {target: '_blank'}, theme: "carbong90" },
+                            { mode: "vega-lite", actions: false, theme: "carbong90" },
                         ).then((embedded) => {
                             views[id] = embedded.view;
                             if (timestamps.length > 0) {
                                 embedded.view.signal("between", timestamps).runAsync();
+                            }
+                            if (highlightedCommit !== undefined) {
+                                embedded.view.signal("highlight", highlightedCommit).runAsync();
                             }
                         });
 
@@ -657,6 +691,24 @@
             {% for crate in crate_names -%}
             lazyLoading("{{ crate }}");
             {% endfor %}
+
+            function updateBevyLink(commit) {
+                const bevyLink = document.getElementById("bevy-link");
+                bevyLink.href = `https://github.com/bevyengine/bevy/commit/${commit}`;
+                bevyLink.innerHTML = `Bevy#${commit}`;
+            }
+
+            addEventListener("hashchange", (event) => {
+                highlightedCommit = event.newURL.split("#")[1];
+                updateBevyLink(highlightedCommit);
+                for (view in views) {
+                    views[view].signal("highlight", highlightedCommit).runAsync();
+                }
+            })
+
+            if (highlightedCommit !== undefined) {
+                updateBevyLink(highlightedCommit);
+            }
         </script>
     </body>
 </html>
