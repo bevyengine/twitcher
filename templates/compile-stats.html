@@ -1,7 +1,7 @@
 <!doctype html>
 <html>
     <head>
-        <title>Bevy Bench Report</title>
+        <title>Bevy Bench Report - Compilation Stats</title>
         <style>
             .maingraph {
                 width: 50%;
@@ -29,6 +29,10 @@
                 border: 1px solid #ccc;
                 z-index: 100;
             }
+
+            a {
+                color: white;
+            }
         </style>
         <script src="https://cdn.jsdelivr.net/npm/vega@6.2.0"></script>
         <script src="https://cdn.jsdelivr.net/npm/vega-lite@6.1.0"></script>
@@ -40,7 +44,12 @@
     </head>
     <body style="background-color: rgb(38, 38, 38)">
         <div id="settings" style="display: flex; flex-direction: column">
-            <div>Stats about Bevy compilation</div>
+            <div>
+                <a href="compile-stats.html" style="color: red"
+                    >Compilation Stats</a
+                >
+                <a href="stress-tests.html">Stress Tests</a>
+            </div>
             <div id="domain-controller" class="domain"></div>
             <label>
                 <input
@@ -78,7 +87,7 @@
                         type="button"
                         onclick="set_interval({{ end }} - {{ twoweeksago}})"
                     >
-                        12 weeks
+                        2 weeks
                     </button>
                 </div>
                 <div>
@@ -95,7 +104,6 @@
                     href="https://github.com/bevyengine/bevy"
                     target="_blank"
                     id="bevy-link"
-                    style="color: white"
                 >
                     Bevy
                 </a>
@@ -691,6 +699,7 @@
                     }
                 }
                 window.addEventListener('scroll', checkVisibility);
+                checkVisibility();
             }
 
             {% for crate in crate_names -%}
