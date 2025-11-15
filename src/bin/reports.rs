@@ -164,7 +164,7 @@ fn setup_stress_tests(stats: &Vec<Stats>, cache_id: &str) -> Vec<String> {
                     <= DATE_LIMIT
                     && chrono::DateTime::from_timestamp_millis(stat.commit_timestamp as i64)
                         .unwrap()
-                        > chrono::DateTime::parse_from_rfc3339("2025-08-27T00:00:00Z").unwrap()
+                        > chrono::DateTime::parse_from_rfc3339("2025-08-27T00:00:00Z").unwrap() // Data before this date is not with the same format
             })
             .flat_map(|stat| {
                 stat.metrics
