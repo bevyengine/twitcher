@@ -81,7 +81,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-fn setup_compile_stats<'a>(stats: &'a Vec<Stats>, cache_id: &str) -> Vec<&'a str> {
+fn setup_compile_stats<'a>(stats: &'a [Stats], cache_id: &str) -> Vec<&'a str> {
     #[derive(Serialize)]
     struct DataPoint {
         timestamp: u128,
@@ -130,7 +130,7 @@ fn setup_compile_stats<'a>(stats: &'a Vec<Stats>, cache_id: &str) -> Vec<&'a str
     crate_names
 }
 
-fn setup_stress_tests(stats: &Vec<Stats>, cache_id: &str) -> Vec<String> {
+fn setup_stress_tests(stats: &[Stats], cache_id: &str) -> Vec<String> {
     #[derive(Serialize)]
     struct DataPoint {
         timestamp: u128,
@@ -146,8 +146,7 @@ fn setup_stress_tests(stats: &Vec<Stats>, cache_id: &str) -> Vec<String> {
         .filter(|m| m.starts_with("stress-test-fps") && m.ends_with(".mean"))
         .map(|m| {
             let mut split = m.split('.');
-            // format!("{}.{}", split.nth(1).unwrap(), split.nth(0).unwrap())
-            (split.nth(1).unwrap(), split.nth(0).unwrap())
+            (split.nth(1).unwrap(), split.next().unwrap())
         })
         .collect::<HashSet<_>>()
         .into_iter()
