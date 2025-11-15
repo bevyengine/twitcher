@@ -1,7 +1,7 @@
 <!doctype html>
 <html>
     <head>
-        <title>Bevy Bench Report</title>
+        <title>Bevy Bench Report - Compilation Stats</title>
         <style>
             .maingraph {
                 width: 50%;
@@ -44,7 +44,12 @@
     </head>
     <body style="background-color: rgb(38, 38, 38)">
         <div id="settings" style="display: flex; flex-direction: column">
-            <div>Stats about Bevy compilation</div>
+            <div>
+                <a href="compile-stats.html" style="color: red"
+                    >Compilation Stats</a
+                >
+                <a href="stress-tests.html">Stress Tests</a>
+            </div>
             <div id="domain-controller" class="domain"></div>
             <label>
                 <input
