@@ -35,6 +35,9 @@ jobs:
       - name: Build Reports
         run: |
           cargo run --bin reports -- ${{ github.sha }}
+      - name: Build Landing Page
+        run: |
+          cargo run --bin landing-page
       - name: Prepare Site
         run: |
           mkdir site
