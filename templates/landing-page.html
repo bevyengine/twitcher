@@ -1,0 +1,157 @@
+<!doctype html>
+<html>
+    <head>
+        <title>Bevy Bench Report</title>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+        <link
+            href="https://fonts.googleapis.com/css2?family=Fira+Sans:wght@400;500;700&display=swap"
+            rel="stylesheet"
+        />
+        <style>
+            body {
+                margin: 0;
+                padding: 0;
+                background-color: rgb(35, 35, 38);
+                min-height: 100vh;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+            }
+
+            .logo-container {
+                text-align: center;
+            }
+
+            .logo-container img {
+                max-width: 600px;
+                width: 80%;
+            }
+
+            .description {
+                color: #e0e0e0;
+                font-family: "Fira Sans", sans-serif;
+                text-align: center;
+                max-width: 600px;
+                margin-top: 2rem;
+                line-height: 1.6;
+            }
+
+            .description h1 {
+                color: #fff;
+                font-size: 1.5rem;
+                margin-bottom: 1rem;
+            }
+
+            .description p {
+                font-size: 1rem;
+            }
+
+            .links {
+                margin-top: 2rem;
+                display: flex;
+                flex-wrap: wrap;
+                justify-content: center;
+                gap: 1rem;
+            }
+
+            .links a {
+                color: #ececec;
+                background-color: #4a4a4a;
+                border: 3px solid #6a6a6a;
+                padding: 6px 12px;
+                border-radius: 10px;
+                text-decoration: none;
+                font-family: "Fira Sans", sans-serif;
+                font-size: 1.2rem;
+                font-weight: 500;
+                display: inline-flex;
+                align-items: center;
+                transition: background-color 100ms;
+            }
+
+            .links a:hover {
+                background-color: #5a5a5a;
+            }
+
+            .reports {
+                margin-top: 2rem;
+                display: flex;
+                flex-wrap: wrap;
+                justify-content: center;
+                gap: 1rem;
+            }
+
+            .reports a {
+                color: #ececec;
+                background-color: #4a6e91;
+                border: 3px solid #6a8fb3;
+                padding: 6px 12px;
+                border-radius: 10px;
+                text-decoration: none;
+                font-family: "Fira Sans", sans-serif;
+                font-size: 1.2rem;
+                font-weight: 500;
+                display: inline-flex;
+                align-items: center;
+                transition: background-color 100ms;
+            }
+
+            .reports a:hover {
+                background-color: #456687;
+            }
+        </style>
+    </head>
+
+    <body>
+        <div class="logo-container">
+            <img
+                src="https://bevy.org/assets/bevy_logo_dark.svg"
+                alt="Bevy Logo"
+            />
+            <div class="description">
+                <h1>Bevy Metrics</h1>
+                <p>
+                    Tracking performance metrics for the Bevy game engine:
+                    compilation times, binary sizes, stress tests, benchmarks,
+                    and more.
+                </p>
+            </div>
+            <div class="reports">
+                <a href="/compile-stats.html">Compile Stats</a>
+                <a href="/stress-tests.html">Stress Tests</a>
+                <a href="/raw-graphs.html">Raw Graphs</a>
+            </div>
+            <div class="links">
+                <a href="https://github.com/bevyengine/twitcher">
+                    <svg
+                        height="16"
+                        width="16"
+                        viewBox="0 0 16 16"
+                        fill="currentColor"
+                        style="vertical-align: middle; margin-right: 0.5rem"
+                    >
+                        <path
+                            d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"
+                        />
+                    </svg>
+                    Twitcher
+                </a>
+                <a href="https://github.com/bevyengine/bevy">
+                    <svg
+                        height="16"
+                        width="16"
+                        viewBox="0 0 16 16"
+                        fill="currentColor"
+                        style="vertical-align: middle; margin-right: 0.5rem"
+                    >
+                        <path
+                            d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"
+                        />
+                    </svg>
+                    Bevy
+                </a>
+            </div>
+        </div>
+    </body>
+</html>

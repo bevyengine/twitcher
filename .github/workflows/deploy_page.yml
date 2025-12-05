@@ -29,12 +29,15 @@ jobs:
       - name: Build Graphs
         run: |
           cargo run --bin graphs
-      - name: Build HTML
+      - name: Build HTML for graphs
         run: |
-          cargo run --bin index
+          cargo run --bin raw-graphs
       - name: Build Reports
         run: |
           cargo run --bin reports -- ${{ github.sha }}
+      - name: Build Landing Page
+        run: |
+          cargo run --bin landing-page
       - name: Prepare Site
         run: |
           mkdir site

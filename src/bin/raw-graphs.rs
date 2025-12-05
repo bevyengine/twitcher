@@ -30,6 +30,6 @@ fn main() {
     context.insert("metrics", &metrics);
 
     // Render the template with the given context
-    let rendered = tera.render("index.html", &context).unwrap();
-    std::fs::write("./index.html", &rendered).unwrap();
+    let rendered = tera.render("raw-graphs.html", &context).unwrap();
+    std::fs::write("./raw-graphs.html", &rendered).unwrap();
 }
