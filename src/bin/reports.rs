@@ -176,7 +176,7 @@ fn setup_stress_tests(stats: &[Stats], cache_id: &str) -> Vec<String> {
             .flat_map(|stat| {
                 stat.metrics
                     .get(&format!(
-                        "stress-test-fps.{}.{}.mean",
+                        "stress-test-fps.{}.{}.duration",
                         stress_test.0, stress_test.1
                     ))
                     .map(|value| DataPoint {

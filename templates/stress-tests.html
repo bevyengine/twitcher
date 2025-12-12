@@ -466,7 +466,7 @@
                             "#" + id + " > #graph",
                             crateCompilationTime(
                                 "data/" + id + "{{ cache_id }}.json",
-                                "Stress Test - " + id,
+                                id,
                             ),
                             { mode: "vega-lite", actions: false, theme: "carbong90" },
                         ).then((embedded) => {
