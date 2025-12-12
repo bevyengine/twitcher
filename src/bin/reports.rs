@@ -174,15 +174,15 @@ fn setup_stress_tests(stats: &[Stats], cache_id: &str) -> Vec<String> {
                     .map(|value| DataPoint {
                         timestamp: stat.commit_timestamp,
                         commit: stat.commit.clone(),
-                        frame_time: *value
-                            / stat
+                        frame_time: (1000.0 * (*value as f64)
+                            / (stat
                                 .metrics
                                 .get(&format!(
                                     "stress-test-fps.{}.{}.frames",
                                     stress_test.0, stress_test.1
                                 ))
                                 .cloned()
-                                .unwrap(),
+                                .unwrap() as f64)) as u64,
                         cpu: stat
                             .metrics
                             .get(&format!(

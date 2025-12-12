@@ -120,27 +120,16 @@
         </div>
 
         <script>
-            vega.expressionFunction("duration", function (ms, params) {
-                const time = {
-                    h: Math.floor(ms / 3600000) % 24,
-                    m: Math.floor(ms / 60000) % 60,
-                    s: Math.floor(ms / 1000) % 60,
-                    ms: Math.floor(ms) % 1000,
-                };
-                return Object.entries(time)
-                    .filter((val) => val[1] !== 0)
-                    .map(([key, val]) => `${val}${key}`)
-                    .join(" ");
-            });
             vega.expressionFunction("percent", function (v, params) {
                 return `${Math.round(v / 10)/100.0}%`;
             });
-            vega.expressionFunction("duration", function (ms, params) {
+            vega.expressionFunction("duration", function (µs, params) {
                 const time = {
-                    h: Math.floor(ms / 3600000) % 24,
-                    m: Math.floor(ms / 60000) % 60,
-                    s: Math.floor(ms / 1000) % 60,
-                    ms: Math.floor(ms) % 1000,
+                    h: Math.floor(µs / 3600000000) % 24,
+                    m: Math.floor(µs / 60000000) % 60,
+                    s: Math.floor(µs / 1000000) % 60,
+                    ms: Math.floor(µs / 1000) % 1000,
+                    Ms: Math.floor(µs) % 1000,
                 };
                 return Object.entries(time)
                     .filter((val) => val[1] !== 0)
