@@ -12,7 +12,7 @@ pub trait Metrics: std::fmt::Debug {
 }
 
 pub fn file_safe_metric_name(metric: &str) -> String {
-    let mut metric = metric.replace([':', '/'], "_");
+    let mut metric = metric.replace([':', '/', '#', '(', ')'], "_");
     if metric.len() > 150 {
         metric = format!("{}-{}", &metric[..100], &metric[(metric.len() - 50)..]);
     }

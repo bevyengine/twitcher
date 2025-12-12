@@ -3,7 +3,10 @@ use std::{collections::HashSet, fs::File, io::BufReader, path::Path};
 use chrono::{Days, Months};
 use serde::Serialize;
 use tera::Tera;
-use twitcher::stats::{Stats, find_stats_files};
+use twitcher::{
+    file_safe_metric_name,
+    stats::{Stats, find_stats_files},
+};
 
 const DATE_LIMIT: chrono::Duration = chrono::Duration::weeks(26);
 
@@ -27,12 +30,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let crate_names = setup_compile_stats(&stats, &cache_id);
     let stress_tests = setup_stress_tests(&stats, &cache_id);
+    let benchmarks = setup_benchmarks(&stats, &cache_id);
 
     let tera = Tera::new("templates/*").unwrap();
     let mut context = tera::Context::new();
 
     context.insert("crate_names", &crate_names);
     context.insert("stress_tests", &stress_tests);
+    context.insert("benchmarks", &benchmarks);
     context.insert(
         "start",
         &((chrono::Utc::now() - DATE_LIMIT).timestamp() * 1000),
@@ -77,6 +82,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let rendered = tera.render("stress-tests.html", &context).unwrap();
     std::fs::write("./stress-tests.html", &rendered).unwrap();
+
+    let rendered = tera.render("benchmarks.html", &context).unwrap();
+    std::fs::write("./benchmarks.html", &rendered).unwrap();
 
     Ok(())
 }
@@ -217,5 +225,60 @@ fn setup_stress_tests(stats: &[Stats], cache_id: &str) -> Vec<String> {
     stress_tests
         .into_iter()
         .map(|(name, params)| format!("{name}_{params}"))
+        .collect()
+}
+
+fn setup_benchmarks(stats: &[Stats], cache_id: &str) -> Vec<String> {
+    #[derive(Serialize)]
+    struct DataPoint {
+        timestamp: u128,
+        commit: String,
+        duration: u64,
+    }
+
+    let mut benchmarks = stats
+        .iter()
+        .flat_map(|stat| stat.metrics.keys())
+        .filter(|m| m.starts_with("benchmarks.") && m.ends_with(".mean"))
+        .map(|m| {
+            let mut split = m.split('.');
+            split.nth(1).unwrap()
+        })
+        .map(|benchmark| (benchmark.to_string(), file_safe_metric_name(benchmark)))
+        .collect::<HashSet<_>>()
+        .into_iter()
+        .collect::<Vec<_>>();
+    benchmarks.sort();
+
+    benchmarks.iter().for_each(|(benchmark, safe_name)| {
+        let values = stats
+            .iter()
+            .filter(|stat| {
+                (chrono::Utc::now()
+                    - chrono::DateTime::from_timestamp_millis(stat.commit_timestamp as i64)
+                        .unwrap())
+                    <= DATE_LIMIT
+            })
+            .flat_map(|stat| {
+                stat.metrics
+                    .get(&format!("benchmarks.{benchmark}.mean"))
+                    .map(|value| DataPoint {
+                        timestamp: stat.commit_timestamp,
+                        commit: stat.commit.clone(),
+                        duration: *value,
+                    })
+            })
+            .collect::<Vec<_>>();
+
+        serde_json::to_writer(
+            std::fs::File::create(format!("data/{safe_name}{cache_id}.json")).unwrap(),
+            &values,
+        )
+        .unwrap();
+    });
+
+    benchmarks
+        .into_iter()
+        .map(|(_, safe_name)| safe_name)
         .collect()
 }
