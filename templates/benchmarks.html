@@ -1,0 +1,410 @@
+<!doctype html>
+<html>
+    <head>
+        <title>Bevy Metrics - Benchmarks</title>
+        <style>
+            .maingraph {
+                width: 50%;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+            }
+            .detailedgraph {
+                width: 33%;
+                min-width: 400px;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+            }
+            .graph {
+                width: 100%;
+                height: 300px;
+            }
+            #settings {
+                position: sticky;
+                top: 0;
+                background: rgb(22, 22, 22);
+                color: white;
+                padding: 10px;
+                border: 1px solid #ccc;
+                z-index: 100;
+            }
+
+            a {
+                color: white;
+            }
+        </style>
+        <script src="https://cdn.jsdelivr.net/npm/vega@6.2.0"></script>
+        <script src="https://cdn.jsdelivr.net/npm/vega-lite@6.1.0"></script>
+        <script src="https://cdn.jsdelivr.net/npm/vega-embed@7.0.2"></script>
+        <link
+            rel="stylesheet"
+            href="https://1.www.s81c.com/common/carbon/dataviz/carbon-vega-theme/latest/css/g90.css"
+        />
+    </head>
+    <body style="background-color: rgb(38, 38, 38)">
+        <div id="settings" style="display: flex; flex-direction: column">
+            <div>
+                <a href="compile-stats.html">Compilation Stats</a>
+                -
+                <a href="stress-tests.html">Stress Tests</a>
+                -
+                <a href="benchmarks.html" style="color: red">Benchmarks</a>
+            </div>
+            <div id="domain-controller" class="domain"></div>
+            <div style="display: flex; justify-content: space-evenly">
+                <div>
+                    <button type="button" onclick="clear_interval()">
+                        None
+                    </button>
+                </div>
+                <div>
+                    <button
+                        type="button"
+                        onclick="set_interval({{ end }} - {{ threemonthsago}})"
+                    >
+                        3 months
+                    </button>
+                </div>
+                <div>
+                    <button
+                        type="button"
+                        onclick="set_interval({{ end }} - {{ onemonthago}})"
+                    >
+                        1 month
+                    </button>
+                </div>
+                <div>
+                    <button
+                        type="button"
+                        onclick="set_interval({{ end }} - {{ twoweeksago}})"
+                    >
+                        2 weeks
+                    </button>
+                </div>
+                <div>
+                    <button
+                        type="button"
+                        onclick="set_interval({{ end }} - {{ oneweekago}})"
+                    >
+                        1 week
+                    </button>
+                </div>
+            </div>
+            <div>
+                <a
+                    href="https://github.com/bevyengine/bevy"
+                    target="_blank"
+                    id="bevy-link"
+                >
+                    Bevy
+                </a>
+            </div>
+        </div>
+        <div
+            style="
+                display: flex;
+                flex-wrap: wrap;
+                row-gap: 2em;
+                justify-content: space-around;
+            "
+        >
+            {% for benchmark in benchmarks -%}
+            <div id="{{ benchmark }}" class="detailedgraph">
+                <div id="graph" class="graph"></div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <script>
+            vega.expressionFunction("percent", function (v, params) {
+                return `${Math.round(v / 10)/100.0}%`;
+            });
+            vega.expressionFunction("duration", function (ns, params) {
+                const time = {
+                    m: Math.floor(ns / 60000000000) % 24,
+                    s: Math.floor(ns / 1000000000) % 60,
+                    ms: Math.floor(ns / 1000000) % 1000,
+                    Ms: Math.floor(ns / 1000) % 1000,
+                    ns: Math.floor(ns) % 1000,
+                };
+                return Object.entries(time)
+                    .filter((val) => val[1] !== 0)
+                    .map(([key, val]) => `${val}${key}`)
+                    .join(" ");
+            });
+
+
+            crateCompilationTime = (file, title) => {
+                return {
+                    $schema: "https://vega.github.io/schema/vega-lite/v6.json",
+                    data: {
+                        url: file,
+                    },
+                    width: "container",
+                    height: "container",
+                    transform: [
+                        {
+                            calculate:
+                              "'benchmarks.html#' + datum.commit",
+                            as: "url",
+                        },
+                    ],
+                    title: title,
+                    params: [
+                      { name: "between", value: [{{ threemonthsago }}, {{ end }}] },
+                      { name: "has_zero", value: true },
+                      { name: "highlight", value: "" },
+                    ],
+
+                    layer: [
+                        {
+                            mark: {
+                                type: "circle",
+                            },
+                            encoding: {
+                                x: {
+                                    title: "",
+                                    field: "timestamp",
+                                    type: "temporal",
+                                    scale: {domain: {selection: "between"}},
+                                },
+                                y: {
+                                    field: "duration",
+                                    type: "quantitative",
+                                    scale: {
+                                        zero: { expr: "has_zero" },
+                                    },
+                                    axis: {
+                                        formatType: "duration",
+                                    },
+                                    title: "Duration",
+                                },
+                                tooltip: [
+                                    {
+                                        field: "duration",
+                                        formatType: "duration",
+                                        title: "Duration",
+                                    },
+                                    { field: "commit" },
+                                    {
+                                        field: "timestamp",
+                                        title: "Time",
+                                        type: "temporal",
+                                        format: "%Y-%m-%d %H:%M:%S",
+                                    }
+                                ],
+                                href: { field: "url", type: "nominal" },
+                                color: {
+                                    condition: [
+                                        {
+                                            test: { field: "commit", equal: {expr: "highlight"} },
+                                            value: "rgb(200, 20, 0)",
+                                        },
+                                    ],
+                                    value: "rgb(76, 120, 168)",
+                                },
+                            },
+                        },
+                    ],
+                    resolve: {scale: {y: "independent"}},
+                    config: { customFormatTypes: true }
+                };
+            };
+            domain = () => {
+                return {
+                    $schema: "https://vega.github.io/schema/vega-lite/v6.json",
+                    data: {
+                        name: "DomainData",
+                    },
+                    width: "container",
+                    height: "container",
+                    height: 60,
+                    selection: {
+                        between: {
+                            type: "interval",
+                            encodings: ["x"],
+                            init: {x: [{{ threemonthsago }}, {{ end }}]}
+                        }
+                    },
+                    mark: {
+                        type: "line",
+                    },
+                    encoding: {
+                        x: {
+                            field: "timestamp",
+                            type: "temporal",
+                              scale: {
+                                  domain: [{{ start }}, {{ end }}],
+                              },
+                        },
+                        y: {
+                            field: "value",
+                            type: "quantitative",
+                            scale: {
+                                zero: false,
+                            },
+                            axis: {
+                                grid: false,
+                                tickCount: 0,
+                            },
+                            title: "",
+                        }
+                    },
+                    config: { customFormatTypes: true }
+                };
+            };
+
+            function isEmpty(obj) {
+                for (const prop in obj) {
+                    if (Object.hasOwn(obj, prop)) {
+                        return false;
+                    }
+                }
+
+                return true;
+            }
+
+            let views = {};
+            let last = 0;
+            let step = 10;
+            async function refreshViews() {
+                let slice = Object.entries(views).slice(last, last + step);
+                for (i in slice) {
+                    let view = slice[i][1];
+                    view.runAsync();
+                }
+                last = last + step;
+                if (last > Object.keys(views).length) {
+                    last = 0;
+                    return;
+                }
+                setTimeout(refreshViews, 100);
+            }
+
+            async function set_interval(duration) {
+                var end = {{ end }};
+                if (timestamps.length == 2) {
+                    end = timestamps[1];
+                }
+                start = end - duration;
+                let start_percent = (start - {{ start }}) / ({{ end }} - {{ start }});
+                let end_percent = (end - {{ start }}) / ({{ end }} - {{ start }});
+
+                let width = domain.signal("width");
+                domain.signal("between_x", [start_percent * width, end_percent * width]).runAsync();
+            }
+            async function clear_interval() {
+                domain.signal("between_x", {}).runAsync();
+            }
+
+            timestamps = [];
+            highlightedCommit = window.location.hash.split("#")[1];
+            async function share_interval(value) {
+
+                var percent = [0, 1];
+
+                if (!isEmpty(value)) {
+                    let width = domain.signal("width");
+                    percent = value.map((x) => x / width);
+                    if (value[0] == value[1]) {
+                        percent = [0, 1];
+                    }
+                }
+                timestamps = percent.map(
+                    (x) => x * ({{ end }} - {{ start }}) + {{ start }},
+                );
+                for (name in views) {
+                    let view = views[name];
+                    view.signal("between", timestamps);
+                }
+                last = 0;
+                setTimeout(refreshViews, 100);
+            }
+
+            async function toggleDomain(data) {
+                fetch(data)
+                    .then((response) => response.json())
+                    .then((json) => {
+                        domain
+                            .change(
+                                "DomainData",
+                                vega.changeset().remove((_) => true),
+                            )
+                            .run();
+                        domain.insert("DomainData", json).runAsync();
+                    });
+            }
+
+            vegaEmbed(
+                "#domain-controller",
+                domain(),
+                { mode: "vega-lite", actions: false, theme: "carbong100" },
+            ).then((embedded) => {
+                domain = embedded.view;
+                fetch("data/compile-time-unix-x86_64-16.mean{{ cache_id }}.json")
+                    .then((response) => response.json())
+                    .then((json) =>
+                        domain.insert("DomainData", json).runAsync(),
+                    );
+
+                embedded.view.addSignalListener(
+                    "between_x",
+                    (_, value) => share_interval(value),
+                );
+            });
+
+            lazyLoading = (id) => {
+                const elem = document.getElementById(id);
+                const checkVisibility = () => {
+                  if (elem.getBoundingClientRect().top < window.innerHeight && elem.getBoundingClientRect().bottom > 0) {
+                        window.removeEventListener('scroll', checkVisibility )
+
+                        vegaEmbed(
+                            "#" + id + " > #graph",
+                            crateCompilationTime(
+                                "data/" + id + "{{ cache_id }}.json",
+                                id,
+                            ),
+                            { mode: "vega-lite", actions: false, theme: "carbong90" },
+                        ).then((embedded) => {
+                            views[id] = embedded.view;
+                            if (timestamps.length > 0) {
+                                embedded.view.signal("between", timestamps).runAsync();
+                            }
+                            if (highlightedCommit !== undefined) {
+                                embedded.view.signal("highlight", highlightedCommit).runAsync();
+                            }
+                        });
+
+
+                    }
+                }
+                window.addEventListener('scroll', checkVisibility);
+                checkVisibility();
+            }
+
+            {% for benchmark in benchmarks -%}
+            lazyLoading("{{ benchmark }}");
+            {% endfor %}
+
+            function updateBevyLink(commit) {
+                const bevyLink = document.getElementById("bevy-link");
+                bevyLink.href = `https://github.com/bevyengine/bevy/commit/${commit}`;
+                bevyLink.innerHTML = `Bevy#${commit}`;
+            }
+
+            addEventListener("hashchange", (event) => {
+                highlightedCommit = event.newURL.split("#")[1];
+                updateBevyLink(highlightedCommit);
+                for (view in views) {
+                    views[view].signal("highlight", highlightedCommit).runAsync();
+                }
+            })
+
+            if (highlightedCommit !== undefined) {
+                updateBevyLink(highlightedCommit);
+            }
+        </script>
+    </body>
+</html>
