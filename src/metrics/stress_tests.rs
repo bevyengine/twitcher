@@ -45,11 +45,13 @@ impl Metrics for StressTest {
         let stress_tests = self.stress_test.clone();
         let mut features = self.features.clone();
         features.push("bevy_ci_testing".to_string());
-        let features = features.join(",");
+        let features = features
+            .into_iter()
+            .flat_map(|f| ["--features".to_string(), f]);
 
         cmd!(
             sh,
-            "cargo build --release --features=\"{features}\" --example {stress_tests}"
+            "cargo build --release {features...} --example {stress_tests}"
         )
         .run()
         .is_ok()
@@ -112,11 +114,13 @@ impl Metrics for StressTest {
         let stress_tests = self.stress_test.clone();
         let mut features = self.features.clone();
         features.push("bevy_ci_testing".to_string());
-        let features = features.join(",");
+        let features = features
+            .into_iter()
+            .flat_map(|f| ["--features".to_string(), f]);
 
         let cmd = cmd!(
             sh,
-            "xvfb-run cargo run --release --features=\"{features}\" --example {stress_tests} -- {parameters...}"
+            "xvfb-run cargo run --release {features...} --example {stress_tests} -- {parameters...}"
         );
         let mut results = HashMap::new();
 
