@@ -168,7 +168,7 @@ impl Commands {
                             vec![
                                 ("benchmark".to_string(), None),
                                 ("waves".to_string(), Some("100".to_string())),
-                                ("per-wave".to_string(), Some("500".to_string())),
+                                ("per-wave".to_string(), Some("200".to_string())),
                                 ("alpha-mode".to_string(), Some("blend".to_string())),
                             ],
                             10000,
@@ -178,7 +178,7 @@ impl Commands {
                             vec![
                                 ("benchmark".to_string(), None),
                                 ("waves".to_string(), Some("100".to_string())),
-                                ("per-wave".to_string(), Some("5000".to_string())),
+                                ("per-wave".to_string(), Some("500".to_string())),
                                 ("alpha-mode".to_string(), Some("opaque".to_string())),
                             ],
                             10000,
@@ -188,7 +188,7 @@ impl Commands {
                             vec![
                                 ("benchmark".to_string(), None),
                                 ("waves".to_string(), Some("100".to_string())),
-                                ("per-wave".to_string(), Some("5000".to_string())),
+                                ("per-wave".to_string(), Some("500".to_string())),
                                 ("alpha-mode".to_string(), Some("alpha_mask".to_string())),
                             ],
                             10000,
@@ -197,10 +197,10 @@ impl Commands {
                             stress_tests::StressTest::on(
                                 "solari".to_string(),
                                 vec![("many-lights ".to_string(), None)],
-                                10000,
+                                5000,
                             )
                             .with_features(vec![
-                                "http",
+                                "https",
                                 "free_camera",
                                 "bevy_solari",
                             ]),
