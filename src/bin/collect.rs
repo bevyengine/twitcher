@@ -163,6 +163,36 @@ impl Commands {
                             vec![],
                             20000,
                         )),
+                        Box::new(stress_tests::StressTest::on(
+                            "bevymark_3d".to_string(),
+                            vec![
+                                ("benchmark".to_string(), None),
+                                ("waves".to_string(), Some("100".to_string())),
+                                ("per-wave".to_string(), Some("500".to_string())),
+                                ("alpha-mode".to_string(), Some("blend".to_string())),
+                            ],
+                            10000,
+                        )),
+                        Box::new(stress_tests::StressTest::on(
+                            "bevymark_3d".to_string(),
+                            vec![
+                                ("benchmark".to_string(), None),
+                                ("waves".to_string(), Some("100".to_string())),
+                                ("per-wave".to_string(), Some("5000".to_string())),
+                                ("alpha-mode".to_string(), Some("opaque".to_string())),
+                            ],
+                            10000,
+                        )),
+                        Box::new(stress_tests::StressTest::on(
+                            "bevymark_3d".to_string(),
+                            vec![
+                                ("benchmark".to_string(), None),
+                                ("waves".to_string(), Some("100".to_string())),
+                                ("per-wave".to_string(), Some("5000".to_string())),
+                                ("alpha-mode".to_string(), Some("alpha_mask".to_string())),
+                            ],
+                            10000,
+                        )),
                     ]
                 } else {
                     let parameters: Vec<String> =
