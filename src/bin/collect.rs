@@ -196,7 +196,7 @@ impl Commands {
                         Box::new(
                             stress_tests::StressTest::on(
                                 "solari".to_string(),
-                                vec![("many-lights ".to_string(), None)],
+                                vec![("many-lights".to_string(), None)],
                                 5000,
                             )
                             .with_features(vec![
