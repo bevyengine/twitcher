@@ -168,7 +168,7 @@
                     m: Math.floor(µs / 60000000) % 60,
                     s: Math.floor(µs / 1000000) % 60,
                     ms: Math.floor(µs / 1000) % 1000,
-                    Ms: Math.floor(µs) % 1000,
+                    us: Math.floor(µs) % 1000,
                 };
                 return Object.entries(time)
                     .filter((val) => val[1] !== 0)
