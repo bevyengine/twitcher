@@ -240,6 +240,7 @@ impl Commands {
             Commands::All => {
                 if recur {
                     Commands::iter()
+                        .filter(|c| !matches!(c, Commands::LlvmLines))
                         .flat_map(|command| command.to_metrics(false))
                         .collect()
                 } else {
