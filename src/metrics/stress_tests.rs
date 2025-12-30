@@ -16,6 +16,7 @@ pub struct StressTest {
     pub stress_test: String,
     pub parameters: Vec<(String, Option<String>)>,
     pub nb_frames: u32,
+    pub features: Vec<String>,
 }
 
 impl StressTest {
@@ -28,7 +29,13 @@ impl StressTest {
             stress_test,
             parameters,
             nb_frames,
+            features: vec![],
         }
+    }
+
+    pub fn with_features(mut self, features: Vec<&str>) -> Self {
+        self.features = features.into_iter().map(|f| f.to_string()).collect();
+        self
     }
 }
 
@@ -36,9 +43,13 @@ impl Metrics for StressTest {
     fn prepare(&self) -> bool {
         let sh = Shell::new().unwrap();
         let stress_tests = self.stress_test.clone();
+        let mut features = self.features.clone();
+        features.push("bevy_ci_testing".to_string());
+        let features = features.join(",");
+
         cmd!(
             sh,
-            "cargo build --release --features bevy_ci_testing --example {stress_tests}"
+            "cargo build --release --features=\"{features}\" --example {stress_tests}"
         )
         .run()
         .is_ok()
@@ -99,9 +110,13 @@ impl Metrics for StressTest {
             })
             .collect::<Vec<String>>();
         let stress_tests = self.stress_test.clone();
+        let mut features = self.features.clone();
+        features.push("bevy_ci_testing".to_string());
+        let features = features.join(",");
+
         let cmd = cmd!(
             sh,
-            "xvfb-run cargo run --release --features bevy_ci_testing --example {stress_tests} -- {parameters...}"
+            "xvfb-run cargo run --release --features=\"{features}\" --example {stress_tests} -- {parameters...}"
         );
         let mut results = HashMap::new();
 
