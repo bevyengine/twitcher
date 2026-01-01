@@ -29,15 +29,37 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .collect();
 
     let crate_names = setup_compile_stats(&stats, &cache_id);
-    let stress_tests = setup_stress_tests(&stats, &cache_id);
-    let benchmarks = setup_benchmarks(&stats, &cache_id);
+    let mut stress_tests = setup_stress_tests(&stats, &cache_id);
+    let mut benchmarks = setup_benchmarks(&stats, &cache_id);
+
+    let stress_tests_alpha = stress_tests
+        .iter()
+        .map(|(name, _)| name.clone())
+        .collect::<Vec<_>>();
+    stress_tests.sort_by(|a, b| a.1.total_cmp(&b.1));
+    stress_tests.reverse();
+    let stress_tests_z = stress_tests
+        .iter()
+        .map(|(name, _)| name.clone())
+        .collect::<Vec<_>>();
+
+    let benchmarks_alpha = benchmarks
+        .iter()
+        .map(|(name, _)| name.clone())
+        .collect::<Vec<_>>();
+    benchmarks.sort_by(|a, b| a.1.total_cmp(&b.1));
+    benchmarks.reverse();
+    let benchmarks_z = benchmarks
+        .iter()
+        .map(|(name, _)| name.clone())
+        .collect::<Vec<_>>();
 
     let tera = Tera::new("templates/*").unwrap();
     let mut context = tera::Context::new();
 
     context.insert("crate_names", &crate_names);
-    context.insert("stress_tests", &stress_tests);
-    context.insert("benchmarks", &benchmarks);
+    context.insert("stress_tests", &stress_tests_alpha);
+    context.insert("benchmarks", &benchmarks_alpha);
     context.insert(
         "start",
         &((chrono::Utc::now() - DATE_LIMIT).timestamp() * 1000),
@@ -80,11 +102,23 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let rendered = tera.render("compile-stats.html", &context).unwrap();
     std::fs::write("./compile-stats.html", &rendered).unwrap();
 
+    context.insert("stress_tests", &stress_tests_alpha);
+    context.insert("benchmarks", &benchmarks_alpha);
+
     let rendered = tera.render("stress-tests.html", &context).unwrap();
-    std::fs::write("./stress-tests.html", &rendered).unwrap();
+    std::fs::write("./stress-tests_alpha.html", &rendered).unwrap();
 
     let rendered = tera.render("benchmarks.html", &context).unwrap();
-    std::fs::write("./benchmarks.html", &rendered).unwrap();
+    std::fs::write("./benchmarks_alpha.html", &rendered).unwrap();
+
+    context.insert("stress_tests", &stress_tests_z);
+    context.insert("benchmarks", &benchmarks_z);
+
+    let rendered = tera.render("stress-tests.html", &context).unwrap();
+    std::fs::write("./stress-tests_z.html", &rendered).unwrap();
+
+    let rendered = tera.render("benchmarks.html", &context).unwrap();
+    std::fs::write("./benchmarks_z.html", &rendered).unwrap();
 
     Ok(())
 }
@@ -138,7 +172,7 @@ fn setup_compile_stats<'a>(stats: &'a [Stats], cache_id: &str) -> Vec<&'a str> {
     crate_names
 }
 
-fn setup_stress_tests(stats: &[Stats], cache_id: &str) -> Vec<String> {
+fn setup_stress_tests(stats: &[Stats], cache_id: &str) -> Vec<(String, f64)> {
     #[derive(Serialize)]
     struct DataPoint {
         timestamp: u128,
@@ -161,74 +195,102 @@ fn setup_stress_tests(stats: &[Stats], cache_id: &str) -> Vec<String> {
         .collect::<Vec<_>>();
     stress_tests.sort();
 
-    stress_tests.iter().for_each(|stress_test| {
-        let values = stats
-            .iter()
-            .filter(|stat| {
-                (chrono::Utc::now()
-                    - chrono::DateTime::from_timestamp_millis(stat.commit_timestamp as i64)
-                        .unwrap())
-                    <= DATE_LIMIT
-                    && chrono::DateTime::from_timestamp_millis(stat.commit_timestamp as i64)
-                        .unwrap()
-                        > chrono::DateTime::parse_from_rfc3339("2025-08-27T00:00:00Z").unwrap() // Data before this date is not with the same format
-            })
-            .flat_map(|stat| {
-                stat.metrics
-                    .get(&format!(
-                        "stress-test-fps.{}.{}.duration",
-                        stress_test.0, stress_test.1
-                    ))
-                    .map(|value| DataPoint {
-                        timestamp: stat.commit_timestamp,
-                        commit: stat.commit.clone(),
-                        frame_time: (1000.0 * (*value as f64)
-                            / (stat
+    let with_z_scores = stress_tests
+        .into_iter()
+        .flat_map(|stress_test| {
+            let values = stats
+                .iter()
+                .filter(|stat| {
+                    (chrono::Utc::now()
+                        - chrono::DateTime::from_timestamp_millis(stat.commit_timestamp as i64)
+                            .unwrap())
+                        <= DATE_LIMIT
+                        && chrono::DateTime::from_timestamp_millis(stat.commit_timestamp as i64)
+                            .unwrap()
+                            > chrono::DateTime::parse_from_rfc3339("2025-08-27T00:00:00Z").unwrap() // Data before this date is not with the same format
+                })
+                .flat_map(|stat| {
+                    stat.metrics
+                        .get(&format!(
+                            "stress-test-fps.{}.{}.duration",
+                            stress_test.0, stress_test.1
+                        ))
+                        .map(|value| DataPoint {
+                            timestamp: stat.commit_timestamp,
+                            commit: stat.commit.clone(),
+                            frame_time: (1000.0 * (*value as f64)
+                                / (stat
+                                    .metrics
+                                    .get(&format!(
+                                        "stress-test-fps.{}.{}.frames",
+                                        stress_test.0, stress_test.1
+                                    ))
+                                    .cloned()
+                                    .unwrap() as f64))
+                                as u64,
+                            cpu: stat
                                 .metrics
                                 .get(&format!(
-                                    "stress-test-fps.{}.{}.frames",
+                                    "stress-test-fps.{}.{}.cpu_usage.mean",
                                     stress_test.0, stress_test.1
                                 ))
                                 .cloned()
-                                .unwrap() as f64)) as u64,
-                        cpu: stat
-                            .metrics
-                            .get(&format!(
-                                "stress-test-fps.{}.{}.cpu_usage.mean",
-                                stress_test.0, stress_test.1
-                            ))
-                            .cloned()
-                            .unwrap_or(0),
-                        gpu: stat
-                            .metrics
-                            .get(&format!(
-                                "stress-test-fps.{}.{}.gpu_usage.mean",
-                                stress_test.0, stress_test.1
-                            ))
-                            .cloned()
-                            .unwrap_or(0),
-                    })
-            })
-            .collect::<Vec<_>>();
+                                .unwrap_or(0),
+                            gpu: stat
+                                .metrics
+                                .get(&format!(
+                                    "stress-test-fps.{}.{}.gpu_usage.mean",
+                                    stress_test.0, stress_test.1
+                                ))
+                                .cloned()
+                                .unwrap_or(0),
+                        })
+                })
+                .collect::<Vec<_>>();
 
-        serde_json::to_writer(
-            std::fs::File::create(format!(
-                "data/{}_{}{cache_id}.json",
-                stress_test.0, stress_test.1
-            ))
-            .unwrap(),
-            &values,
-        )
-        .unwrap();
-    });
+            if values.is_empty() {
+                return None;
+            }
 
-    stress_tests
+            serde_json::to_writer(
+                std::fs::File::create(format!(
+                    "data/{}_{}{cache_id}.json",
+                    stress_test.0, stress_test.1
+                ))
+                .unwrap(),
+                &values,
+            )
+            .unwrap();
+
+            let raw_values = values
+                .iter()
+                .map(|v| v.frame_time as f64)
+                .collect::<Vec<_>>();
+            let mean = statistical::mean(raw_values.as_slice());
+            let standard_deviation = statistical::standard_deviation(raw_values.as_slice(), None);
+
+            let last_week_z_score = values
+                .iter()
+                .filter(|data| {
+                    (chrono::Utc::now()
+                        - chrono::DateTime::from_timestamp_millis(data.timestamp as i64).unwrap())
+                        <= chrono::Duration::days(7)
+                })
+                .map(|data| data.frame_time)
+                .map(|v| ((v as f64 - mean) / standard_deviation).abs())
+                .max_by(|a, b| a.total_cmp(b))
+                .unwrap_or_default();
+            Some((stress_test.0, stress_test.1, last_week_z_score))
+        })
+        .collect::<Vec<_>>();
+
+    with_z_scores
         .into_iter()
-        .map(|(name, params)| format!("{name}_{params}"))
+        .map(|(name, params, z_score)| (format!("{name}_{params}"), z_score))
         .collect()
 }
 
-fn setup_benchmarks(stats: &[Stats], cache_id: &str) -> Vec<String> {
+fn setup_benchmarks(stats: &[Stats], cache_id: &str) -> Vec<(String, f64)> {
     #[derive(Serialize)]
     struct DataPoint {
         timestamp: u128,
@@ -250,35 +312,59 @@ fn setup_benchmarks(stats: &[Stats], cache_id: &str) -> Vec<String> {
         .collect::<Vec<_>>();
     benchmarks.sort();
 
-    benchmarks.iter().for_each(|(benchmark, safe_name)| {
-        let values = stats
-            .iter()
-            .filter(|stat| {
-                (chrono::Utc::now()
-                    - chrono::DateTime::from_timestamp_millis(stat.commit_timestamp as i64)
-                        .unwrap())
-                    <= DATE_LIMIT
-            })
-            .flat_map(|stat| {
-                stat.metrics
-                    .get(&format!("benchmarks.{benchmark}.mean"))
-                    .map(|value| DataPoint {
-                        timestamp: stat.commit_timestamp,
-                        commit: stat.commit.clone(),
-                        duration: *value,
-                    })
-            })
-            .collect::<Vec<_>>();
-
-        serde_json::to_writer(
-            std::fs::File::create(format!("data/{safe_name}{cache_id}.json")).unwrap(),
-            &values,
-        )
-        .unwrap();
-    });
-
-    benchmarks
+    let with_z_scores = benchmarks
         .into_iter()
-        .map(|(_, safe_name)| safe_name)
+        .flat_map(|(benchmark, safe_name)| {
+            let values = stats
+                .iter()
+                .filter(|stat| {
+                    (chrono::Utc::now()
+                        - chrono::DateTime::from_timestamp_millis(stat.commit_timestamp as i64)
+                            .unwrap())
+                        <= DATE_LIMIT
+                })
+                .flat_map(|stat| {
+                    stat.metrics
+                        .get(&format!("benchmarks.{benchmark}.mean"))
+                        .map(|value| DataPoint {
+                            timestamp: stat.commit_timestamp,
+                            commit: stat.commit.clone(),
+                            duration: *value,
+                        })
+                })
+                .collect::<Vec<_>>();
+
+            if values.is_empty() {
+                return None;
+            }
+
+            serde_json::to_writer(
+                std::fs::File::create(format!("data/{safe_name}{cache_id}.json")).unwrap(),
+                &values,
+            )
+            .unwrap();
+
+            let raw_values = values.iter().map(|v| v.duration as f64).collect::<Vec<_>>();
+            let mean = statistical::mean(raw_values.as_slice());
+            let standard_deviation = statistical::standard_deviation(raw_values.as_slice(), None);
+
+            let last_week_z_score = values
+                .iter()
+                .filter(|data| {
+                    (chrono::Utc::now()
+                        - chrono::DateTime::from_timestamp_millis(data.timestamp as i64).unwrap())
+                        <= chrono::Duration::days(7)
+                })
+                .map(|data| data.duration)
+                .map(|v| ((v as f64 - mean) / standard_deviation).abs())
+                .max_by(|a, b| a.total_cmp(b))
+                .unwrap_or_default();
+            Some((benchmark, safe_name, last_week_z_score))
+        })
+        .collect::<Vec<_>>();
+
+    with_z_scores
+        .into_iter()
+        .map(|(_, safe_name, z_score)| (safe_name, z_score))
         .collect()
 }
