@@ -47,9 +47,9 @@
             <div>
                 <a href="compile-stats.html">Compilation Stats</a>
                 -
-                <a href="stress-tests.html">Stress Tests</a>
+                <a href="stress-tests_z.html">Stress Tests</a>
                 -
-                <a href="benchmarks.html" style="color: red">Benchmarks</a>
+                <a href="benchmarks_z.html" style="color: red">Benchmarks</a>
             </div>
             <div id="domain-controller" class="domain"></div>
             <div style="display: flex; justify-content: space-evenly">
@@ -92,6 +92,12 @@
                 </div>
             </div>
             <div>
+                Order:
+                <a href="benchmarks_z.html"> z-value </a>
+                -
+                <a href="benchmarks_alpha.html"> alpha </a>
+            </div>
+            <div>
                 <a
                     href="https://github.com/bevyengine/bevy"
                     target="_blank"
@@ -125,7 +131,7 @@
                     m: Math.floor(ns / 60000000000) % 24,
                     s: Math.floor(ns / 1000000000) % 60,
                     ms: Math.floor(ns / 1000000) % 1000,
-                    Ms: Math.floor(ns / 1000) % 1000,
+                    us: Math.floor(ns / 1000) % 1000,
                     ns: Math.floor(ns) % 1000,
                 };
                 return Object.entries(time)
