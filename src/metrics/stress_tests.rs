@@ -16,6 +16,7 @@ pub struct StressTest {
     pub stress_test: String,
     pub parameters: Vec<(String, Option<String>)>,
     pub nb_frames: u32,
+    pub features: Vec<String>,
 }
 
 impl StressTest {
@@ -28,7 +29,13 @@ impl StressTest {
             stress_test,
             parameters,
             nb_frames,
+            features: vec![],
         }
+    }
+
+    pub fn with_features(mut self, features: Vec<&str>) -> Self {
+        self.features = features.into_iter().map(|f| f.to_string()).collect();
+        self
     }
 }
 
@@ -36,9 +43,15 @@ impl Metrics for StressTest {
     fn prepare(&self) -> bool {
         let sh = Shell::new().unwrap();
         let stress_tests = self.stress_test.clone();
+        let mut features = self.features.clone();
+        features.push("bevy_ci_testing".to_string());
+        let features = features
+            .into_iter()
+            .flat_map(|f| ["--features".to_string(), f]);
+
         cmd!(
             sh,
-            "cargo build --release --features bevy_ci_testing --example {stress_tests}"
+            "cargo build --release {features...} --example {stress_tests}"
         )
         .run()
         .is_ok()
@@ -99,9 +112,15 @@ impl Metrics for StressTest {
             })
             .collect::<Vec<String>>();
         let stress_tests = self.stress_test.clone();
+        let mut features = self.features.clone();
+        features.push("bevy_ci_testing".to_string());
+        let features = features
+            .into_iter()
+            .flat_map(|f| ["--features".to_string(), f]);
+
         let cmd = cmd!(
             sh,
-            "xvfb-run cargo run --release --features bevy_ci_testing --example {stress_tests} -- {parameters...}"
+            "xvfb-run cargo run --release {features...} --example {stress_tests} -- {parameters...}"
         );
         let mut results = HashMap::new();
 
@@ -148,26 +167,28 @@ impl Metrics for StressTest {
             .map(|line| line.parse::<f32>().unwrap())
             .collect::<Vec<_>>();
 
-        results.insert(
-            format!("{key}.mean"),
-            (statistical::mean(&fpss) * 1000.0) as u64,
-        );
-        results.insert(
-            format!("{key}.median"),
-            (statistical::median(&fpss) * 1000.0) as u64,
-        );
-        results.insert(
-            format!("{key}.min"),
-            fpss.iter().map(|d| (d * 1000.0) as u64).min().unwrap(),
-        );
-        results.insert(
-            format!("{key}.max"),
-            fpss.iter().map(|d| (d * 1000.0) as u64).max().unwrap(),
-        );
-        results.insert(
-            format!("{key}.std_dev"),
-            (statistical::standard_deviation(&fpss, None) * 1000.0) as u64,
-        );
+        if !fpss.is_empty() {
+            results.insert(
+                format!("{key}.mean"),
+                (statistical::mean(&fpss) * 1000.0) as u64,
+            );
+            results.insert(
+                format!("{key}.median"),
+                (statistical::median(&fpss) * 1000.0) as u64,
+            );
+            results.insert(
+                format!("{key}.min"),
+                fpss.iter().map(|d| (d * 1000.0) as u64).min().unwrap(),
+            );
+            results.insert(
+                format!("{key}.max"),
+                fpss.iter().map(|d| (d * 1000.0) as u64).max().unwrap(),
+            );
+            results.insert(
+                format!("{key}.std_dev"),
+                (statistical::standard_deviation(&fpss, None) * 1000.0) as u64,
+            );
+        }
         results.insert(
             format!("{key}.cpu_usage.mean"),
             (statistical::mean(&cpu_usage) * 1000.0) as u64,
