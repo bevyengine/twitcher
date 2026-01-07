@@ -26,6 +26,17 @@ jobs:
         with:
           ref: "results"
           path: "results"
+      - name: Checkout Twitcher queue branch
+        uses: actions/checkout@v4
+        with:
+          ref: "queue"
+          path: "queue"
+      - name: Checkout Bevy main branch
+        uses: actions/checkout@v4
+        with:
+          ref: "main"
+          path: "bevy"
+          fetch-depth: 500
       - name: Build Graphs
         run: |
           cargo run --bin graphs
