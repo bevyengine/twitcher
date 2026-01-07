@@ -54,13 +54,10 @@ fn main() {
     revwalk.set_sorting(Sort::TIME).unwrap();
     revwalk.push_head().unwrap();
     let commits = revwalk
-        .into_iter()
         .filter_map(|c| repo.find_commit(*c.as_ref().unwrap()).ok())
         .take(500)
         .flat_map(|commit| {
-            let Some(captures) = summary_regex.captures(commit.summary().unwrap()) else {
-                return None;
-            };
+            let captures = summary_regex.captures(commit.summary().unwrap())?;
             let id = commit.id().to_string();
             Some(Commit {
                 status: if commits_done.contains(&id) {
