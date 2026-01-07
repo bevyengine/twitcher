@@ -198,6 +198,7 @@ impl Commands {
             Commands::All => {
                 if recur {
                     Commands::iter()
+                        .filter(|command| !matches!(command, Commands::LlvmLines))
                         .flat_map(|command| command.to_metrics(false))
                         .collect()
                 } else {
