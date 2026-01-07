@@ -100,6 +100,36 @@
             .reports a:hover {
                 background-color: #456687;
             }
+
+            .hardware {
+                color: #e0e0e0;
+                font-family: "Fira Sans", sans-serif;
+                text-align: center;
+                display: flex;
+                justify-content: center;
+            }
+
+            .hardware-table {
+                margin-top: 1.5rem;
+                border-collapse: collapse;
+                font-size: 0.9rem;
+            }
+
+            .hardware-table th,
+            .hardware-table td {
+                padding: 0.5rem 1rem;
+                border: 1px solid #6a6a6a;
+            }
+
+            .hardware-table th {
+                background-color: #4a4a4a;
+                color: #fff;
+                font-weight: 500;
+            }
+
+            .hardware-table td {
+                background-color: #3a3a3a;
+            }
         </style>
     </head>
 
@@ -152,6 +182,26 @@
                     </svg>
                     Bevy
                 </a>
+            </div>
+            <div class="hardware">
+                <table class="hardware-table">
+                    <thead>
+                        <tr>
+                            <th>Machine</th>
+                            <th>CPU</th>
+                            <th>GPU</th>
+                            <th>RAM</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>bevy-bench-01</td>
+                            <td>AMD Ryzen 9 9950X</td>
+                            <td>NVIDIA GeForce RTX 3060</td>
+                            <td>64GB</td>
+                        </tr>
+                    </tbody>
+                </table>
             </div>
         </div>
     </body>

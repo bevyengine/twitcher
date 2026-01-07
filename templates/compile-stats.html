@@ -45,6 +45,8 @@
     <body style="background-color: rgb(38, 38, 38)">
         <div id="settings" style="display: flex; flex-direction: column">
             <div>
+                <a href="index.html">Home</a>
+                -
                 <a href="compile-stats.html" style="color: red"
                     >Compilation Stats</a
                 >
@@ -58,7 +60,6 @@
                 <input
                     type="checkbox"
                     id="has-zero"
-                    checked
                     onchange="switchZero(this)"
                 />
                 Graphs start at zero
@@ -229,8 +230,8 @@
                     ],
                     title: title,
                     params: [
-                        { name: "between", value: [{{ threemonthsago }}, {{ end }}] },
-                        { name: "has_zero", value: true },
+                        { name: "between", value: [{{ onemonthago }}, {{ end }}] },
+                        { name: "has_zero", value: false },
                         { name: "highlight", value: "" },
                     ],
 
@@ -326,8 +327,8 @@
                     ],
                     title: title,
                     params: [
-                        { name: "between", value: [{{ threemonthsago }}, {{ end }}] },
-                        { name: "has_zero", value: true },
+                        { name: "between", value: [{{ onemonthago }}, {{ end }}] },
+                        { name: "has_zero", value: false },
                         { name: "highlight", value: "" },
                     ],
 
@@ -424,8 +425,8 @@
                         type: "circle",
                     },
                     params: [
-                      { name: "between", value: [{{ threemonthsago }}, {{ end }}] },
-                      { name: "has_zero", value: true },
+                      { name: "between", value: [{{ onemonthago }}, {{ end }}] },
+                      { name: "has_zero", value: false },
                       { name: "highlight", value: "" },
                     ],
 
@@ -488,7 +489,7 @@
                         between: {
                             type: "interval",
                             encodings: ["x"],
-                            init: {x: [{{ threemonthsago }}, {{ end }}]}
+                            init: {x: [{{ onemonthago }}, {{ end }}]}
                         }
                     },
                     mark: {
