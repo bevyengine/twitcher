@@ -24,7 +24,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let keys: HashSet<_> = stats.iter().flat_map(|stat| stat.metrics.keys()).collect();
     for metric in keys {
-        println!("Metric: {metric}");
         let mut data = stats
             .iter()
             .flat_map(|stat| {
@@ -61,7 +60,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             .unwrap();
 
         root.present().expect("Unable to write result to file");
-        println!("Result has been saved to {out}");
     }
 
     Ok(())

@@ -17,6 +17,7 @@
                 display: flex;
                 justify-content: center;
                 align-items: center;
+                flex-direction: column;
             }
 
             .logo-container {
@@ -26,6 +27,10 @@
             .logo-container img {
                 max-width: 600px;
                 width: 80%;
+            }
+
+            a {
+                color: #e0e0e0;
             }
 
             .description {
@@ -101,7 +106,7 @@
                 background-color: #456687;
             }
 
-            .hardware {
+            .data {
                 color: #e0e0e0;
                 font-family: "Fira Sans", sans-serif;
                 text-align: center;
@@ -109,25 +114,25 @@
                 justify-content: center;
             }
 
-            .hardware-table {
+            .data-table {
                 margin-top: 1.5rem;
                 border-collapse: collapse;
                 font-size: 0.9rem;
             }
 
-            .hardware-table th,
-            .hardware-table td {
+            .data-table th,
+            .data-table td {
                 padding: 0.5rem 1rem;
                 border: 1px solid #6a6a6a;
             }
 
-            .hardware-table th {
+            .data-table th {
                 background-color: #4a4a4a;
                 color: #fff;
                 font-weight: 500;
             }
 
-            .hardware-table td {
+            .data-table td {
                 background-color: #3a3a3a;
             }
         </style>
@@ -139,70 +144,132 @@
                 src="https://bevy.org/assets/bevy_logo_dark.svg"
                 alt="Bevy Logo"
             />
-            <div class="description">
+        </div>
+        <div class="description">
+            <div>
                 <h1>Bevy Metrics</h1>
                 <p>
                     Tracking performance metrics for the Bevy game engine:
                     compilation times, binary sizes, stress tests, benchmarks,
                     and more.
                 </p>
+                {% if missing != 0 -%}
+                <p>
+                    Missing <b>{{ missing }}</b> commits over the last {{
+                    commits | length }}
+                </p>
+                {% else -%}
+                <p>All done!</p>
+                {% endif -%}
+                <p>
+                    Last update:
+                    <b>{{ updated | date(format="%Y-%m-%d %H:%M") }}</b>
+                </p>
             </div>
-            <div class="reports">
-                <a href="compile-stats.html">Compile Stats</a>
-                <a href="stress-tests_z.html">Stress Tests</a>
-                <a href="benchmarks_z.html">Benchmarks</a>
-                <a href="raw-graphs.html">Raw Graphs</a>
-            </div>
-            <div class="links">
-                <a href="https://github.com/bevyengine/twitcher">
-                    <svg
-                        height="16"
-                        width="16"
-                        viewBox="0 0 16 16"
-                        fill="currentColor"
-                        style="vertical-align: middle; margin-right: 0.5rem"
-                    >
-                        <path
-                            d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"
-                        />
-                    </svg>
-                    Twitcher
-                </a>
-                <a href="https://github.com/bevyengine/bevy">
-                    <svg
-                        height="16"
-                        width="16"
-                        viewBox="0 0 16 16"
-                        fill="currentColor"
-                        style="vertical-align: middle; margin-right: 0.5rem"
-                    >
-                        <path
-                            d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"
-                        />
-                    </svg>
-                    Bevy
-                </a>
-            </div>
-            <div class="hardware">
-                <table class="hardware-table">
-                    <thead>
-                        <tr>
-                            <th>Machine</th>
-                            <th>CPU</th>
-                            <th>GPU</th>
-                            <th>RAM</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td>bevy-bench-01</td>
-                            <td>AMD Ryzen 9 9950X</td>
-                            <td>NVIDIA GeForce RTX 3060</td>
-                            <td>64GB</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
+        </div>
+        <div class="reports">
+            <a href="compile-stats.html">Compile Stats</a>
+            <a href="stress-tests_z.html">Stress Tests</a>
+            <a href="benchmarks_z.html">Benchmarks</a>
+            <a href="raw-graphs.html">Raw Graphs</a>
+        </div>
+        <div class="links">
+            <a href="https://github.com/bevyengine/twitcher">
+                <svg
+                    height="16"
+                    width="16"
+                    viewBox="0 0 16 16"
+                    fill="currentColor"
+                    style="vertical-align: middle; margin-right: 0.5rem"
+                >
+                    <path
+                        d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"
+                    />
+                </svg>
+                Twitcher
+            </a>
+            <a href="https://github.com/bevyengine/bevy">
+                <svg
+                    height="16"
+                    width="16"
+                    viewBox="0 0 16 16"
+                    fill="currentColor"
+                    style="vertical-align: middle; margin-right: 0.5rem"
+                >
+                    <path
+                        d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"
+                    />
+                </svg>
+                Bevy
+            </a>
+        </div>
+        <div class="data">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Machine</th>
+                        <th>CPU</th>
+                        <th>GPU</th>
+                        <th>RAM</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>bevy-bench-01</td>
+                        <td>AMD Ryzen 9 9950X</td>
+                        <td>NVIDIA GeForce RTX 3060</td>
+                        <td>64GB</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <div class="data">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th style="text-align: left">Commit</th>
+                        <th>Date</th>
+                        <th>Links</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for commit in commits -%}
+                    <tr>
+                        <td style="text-align: left">
+                            {{ commit.summary }}
+                            <a
+                                href="https://github.com/bevyengine/bevy/pull/{{ commit.pr }}"
+                            >
+                                #{{ commit.pr }}
+                            </a>
+                        </td>
+                        <td>
+                            {{ commit.timestamp | date(format="%Y-%m-%d %H:%M")
+                            }}
+                        </td>
+                        {% if commit.status == "Done" -%}
+                        <td>
+                            <a href="compile-stats.html#{{ commit.id }}">
+                                Compilation Stats
+                            </a>
+                            -
+                            <a href="stress-tests_z.html#{{ commit.id }}">
+                                Stress Tests
+                            </a>
+                            -
+                            <a href="benchmarks_z.html#{{ commit.id }}">
+                                Benchmarks
+                            </a>
+                        </td>
+                        {% elif commit.status == "Queued" -%}
+                        <td>Queued</td>
+                        {% else -%}
+                        <td></td>
+                        {% endif -%}
+                    </tr>
+                    {% endfor -%}
+                </tbody>
+            </table>
         </div>
     </body>
 </html>
