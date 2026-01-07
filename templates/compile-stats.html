@@ -60,7 +60,6 @@
                 <input
                     type="checkbox"
                     id="has-zero"
-                    checked
                     onchange="switchZero(this)"
                 />
                 Graphs start at zero
@@ -232,7 +231,7 @@
                     title: title,
                     params: [
                         { name: "between", value: [{{ threemonthsago }}, {{ end }}] },
-                        { name: "has_zero", value: true },
+                        { name: "has_zero", value: false },
                         { name: "highlight", value: "" },
                     ],
 
@@ -329,7 +328,7 @@
                     title: title,
                     params: [
                         { name: "between", value: [{{ threemonthsago }}, {{ end }}] },
-                        { name: "has_zero", value: true },
+                        { name: "has_zero", value: false },
                         { name: "highlight", value: "" },
                     ],
 
@@ -427,7 +426,7 @@
                     },
                     params: [
                       { name: "between", value: [{{ threemonthsago }}, {{ end }}] },
-                      { name: "has_zero", value: true },
+                      { name: "has_zero", value: false },
                       { name: "highlight", value: "" },
                     ],
 
