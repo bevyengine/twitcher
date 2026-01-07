@@ -60,7 +60,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             .unwrap();
 
         root.present().expect("Unable to write result to file");
-        println!("Result has been saved to {out}");
     }
 
     Ok(())
