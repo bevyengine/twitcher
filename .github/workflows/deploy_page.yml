@@ -34,6 +34,7 @@ jobs:
       - name: Checkout Bevy main branch
         uses: actions/checkout@v4
         with:
+          repository: "bevyengine/bevy"
           ref: "main"
           path: "bevy"
           fetch-depth: 500
