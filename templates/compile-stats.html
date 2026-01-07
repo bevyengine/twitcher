@@ -33,10 +33,23 @@
             a {
                 color: white;
             }
+
+            .disabled {
+                color: gray;
+                pointer-events: none;
+                text-decoration: none;
+            }
         </style>
         <script src="https://cdn.jsdelivr.net/npm/vega@6.2.0"></script>
         <script src="https://cdn.jsdelivr.net/npm/vega-lite@6.1.0"></script>
         <script src="https://cdn.jsdelivr.net/npm/vega-embed@7.0.2"></script>
+        <script>
+            const commits = [
+              {% for commit in commits -%}
+              {'summary': "{{commit.summary}}", 'id': "{{commit.id}}", 'pr': {{commit.pr}}, 'timestamp': {{commit.timestamp}}},
+              {% endfor -%}
+            ];
+        </script>
         <link
             rel="stylesheet"
             href="https://1.www.s81c.com/common/carbon/dataviz/carbon-vega-theme/latest/css/g90.css"
@@ -103,14 +116,52 @@
                     </button>
                 </div>
             </div>
-            <div>
-                <a
-                    href="https://github.com/bevyengine/bevy"
-                    target="_blank"
-                    id="bevy-link"
+            <div
+                style="
+                    display: flex;
+                    justify-content: space-evenly;
+                    align-items: center;
+                "
+            >
+                <div
+                    id="previous-link"
+                    class="disabled"
+                    onclick="navigatePrevious();"
+                    style="cursor: pointer"
                 >
-                    Bevy
-                </a>
+                    &lt;-
+                </div>
+                <div
+                    style="
+                        width: 50em;
+                        text-align: center;
+                        display: flex;
+                        flex-direction: column;
+                    "
+                >
+                    <a
+                        href="https://github.com/bevyengine/bevy"
+                        target="_blank"
+                        id="bevy-link"
+                    >
+                        Bevy
+                    </a>
+                    <a
+                        href="https://github.com/bevyengine/bevy"
+                        target="_blank"
+                        id="pr-link"
+                    >
+                        main
+                    </a>
+                </div>
+                <div
+                    id="next-link"
+                    class="disabled"
+                    onclick="navigateNext();"
+                    style="cursor: pointer"
+                >
+                    -&gt;
+                </div>
             </div>
         </div>
         <div
@@ -710,15 +761,74 @@
             lazyLoading("{{ crate }}");
             {% endfor %}
 
+            function getCommitIndex(commit) {
+                for (var i = 0; i < commits.length; i++) {
+                  if (commits[i].id === commit) {
+                    return i;
+                  }
+                }
+                return -1;
+            }
+
             function updateBevyLink(commit) {
-                const bevyLink = document.getElementById("bevy-link");
-                bevyLink.href = `https://github.com/bevyengine/bevy/commit/${commit}`;
-                bevyLink.innerHTML = `Bevy#${commit}`;
+                let i = getCommitIndex(commit);
+                updatebevyLinkByHistory(i)
+            }
+
+            function updatebevyLinkByHistory(i) {
+              let current_commit = commits[i];
+
+              const bevyLink = document.getElementById("bevy-link");
+
+              bevyLink.href = `https://github.com/bevyengine/bevy/commit/${current_commit.id}`;
+              bevyLink.innerHTML = `Bevy - ${current_commit.id}`;
+
+              const prLink = document.getElementById("pr-link");
+
+              prLink.href = `https://github.com/bevyengine/bevy/pull/${current_commit.pr}`;
+              prLink.innerHTML = `#${current_commit.pr} ${current_commit.summary}`;
+            }
+
+            function updateNavigationLinks(commit) {
+                const prevLink = document.getElementById("previous-link");
+                const nextLink = document.getElementById("next-link");
+                const i = getCommitIndex(commit);
+
+                if (i >= 0 && i < commits.length - 1) {
+                    prevLink.classList.remove("disabled");
+                    prevLink.href = "#" + commits[i + 1].id;
+                } else {
+                    prevLink.classList.add("disabled");
+                    prevLink.removeAttribute("href");
+                }
+
+                if (i > 0) {
+                    nextLink.classList.remove("disabled");
+                    nextLink.href = "#" + commits[i - 1].id;
+                } else {
+                    nextLink.classList.add("disabled");
+                    nextLink.removeAttribute("href");
+                }
+            }
+
+            function navigatePrevious() {
+                const prevLink = document.getElementById("previous-link");
+                if (prevLink.href) {
+                    window.location.hash = prevLink.href.split("#")[1];
+                }
+            }
+
+            function navigateNext() {
+                const nextLink = document.getElementById("next-link");
+                if (nextLink.href) {
+                    window.location.hash = nextLink.href.split("#")[1];
+                }
             }
 
             addEventListener("hashchange", (event) => {
                 highlightedCommit = event.newURL.split("#")[1];
                 updateBevyLink(highlightedCommit);
+                updateNavigationLinks(highlightedCommit);
                 for (view in views) {
                     views[view].signal("highlight", highlightedCommit).runAsync();
                 }
@@ -726,6 +836,7 @@
 
             if (highlightedCommit !== undefined) {
                 updateBevyLink(highlightedCommit);
+                updateNavigationLinks(highlightedCommit);
             }
         </script>
     </body>

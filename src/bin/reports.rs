@@ -1,6 +1,8 @@
 use std::{collections::HashSet, fs::File, io::BufReader, path::Path};
 
 use chrono::{Days, Months};
+use git2::{Repository, Sort};
+use regex::Regex;
 use serde::Serialize;
 use tera::Tera;
 use twitcher::{
@@ -9,6 +11,14 @@ use twitcher::{
 };
 
 const DATE_LIMIT: chrono::Duration = chrono::Duration::weeks(26);
+
+#[derive(Serialize)]
+struct Commit {
+    id: String,
+    summary: String,
+    pr: u32,
+    timestamp: i64,
+}
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let _ = std::fs::create_dir("data");
@@ -27,6 +37,38 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             serde_json::from_reader(reader).unwrap()
         })
         .collect();
+
+    let repo = match Repository::open("bevy") {
+        Ok(repo) => repo,
+        Err(e) => panic!("failed to open: {}", e),
+    };
+    let summary_regex = Regex::new("(.*) \\(#([0-9]+)\\)").unwrap();
+    let mut revwalk = repo.revwalk().unwrap();
+    revwalk.set_sorting(Sort::TIME).unwrap();
+    revwalk.push_head().unwrap();
+    let commits = revwalk
+        .filter_map(|c| repo.find_commit(*c.as_ref().unwrap()).ok())
+        .take(5000)
+        .map(|commit| {
+            let (summary, pr) =
+                if let Some(captures) = summary_regex.captures(commit.summary().unwrap()) {
+                    (
+                        captures.get(1).unwrap().as_str().to_string(),
+                        captures.get(2).unwrap().as_str().parse().unwrap(),
+                    )
+                } else {
+                    (commit.summary().unwrap().to_string(), 0)
+                };
+            let id = commit.id().to_string();
+            Commit {
+                id,
+                timestamp: commit.time().seconds(),
+                summary,
+                pr,
+            }
+        })
+        .filter(|commit| stats.iter().any(|s| commit.id == s.commit))
+        .collect::<Vec<_>>();
 
     let crate_names = setup_compile_stats(&stats, &cache_id);
     let mut stress_tests = setup_stress_tests(&stats, &cache_id);
@@ -58,6 +100,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut context = tera::Context::new();
 
     context.insert("crate_names", &crate_names);
+    context.insert("commits", &commits);
     context.insert("stress_tests", &stress_tests_alpha);
     context.insert("benchmarks", &benchmarks_alpha);
     context.insert(

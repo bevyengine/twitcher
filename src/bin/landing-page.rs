@@ -17,7 +17,7 @@ enum Status {
 struct Commit {
     id: String,
     summary: String,
-    pr: u16,
+    pr: u32,
     timestamp: i64,
     status: Status,
 }
