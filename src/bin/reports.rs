@@ -67,7 +67,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 pr,
             }
         })
-        .filter(|commit| stats.iter().find(|s| commit.id == s.commit).is_some())
+        .filter(|commit| stats.iter().any(|s| commit.id == s.commit))
         .collect::<Vec<_>>();
 
     let crate_names = setup_compile_stats(&stats, &cache_id);
