@@ -160,7 +160,7 @@
                     ],
                     title: title,
                     params: [
-                      { name: "between", value: [{{ threemonthsago }}, {{ end }}] },
+                      { name: "between", value: [{{ onemonthago }}, {{ end }}] },
                       { name: "has_zero", value: true },
                       { name: "highlight", value: "" },
                     ],
@@ -232,7 +232,7 @@
                         between: {
                             type: "interval",
                             encodings: ["x"],
-                            init: {x: [{{ threemonthsago }}, {{ end }}]}
+                            init: {x: [{{ onemonthago }}, {{ end }}]}
                         }
                     },
                     mark: {
