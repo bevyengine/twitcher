@@ -42,7 +42,6 @@ fn main() {
         .collect();
     let commits_queued: Vec<String> = fs::read_dir("queue")
         .unwrap()
-        .into_iter()
         .filter_map(|f| f.ok())
         .filter(|entry| entry.file_type().unwrap().is_file())
         .map(|entry| entry.file_name().to_str().unwrap().to_string())
