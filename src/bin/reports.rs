@@ -18,6 +18,7 @@ struct Commit {
     summary: String,
     pr: u32,
     timestamp: i64,
+    done: bool,
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -65,9 +66,18 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 timestamp: commit.time().seconds(),
                 summary,
                 pr,
+                done: false,
             }
         })
-        .filter(|commit| stats.iter().any(|s| commit.id == s.commit))
+        .filter(|commit| {
+            (chrono::Utc::now()
+                - chrono::DateTime::from_timestamp_millis(commit.timestamp * 1000).unwrap())
+                <= DATE_LIMIT
+        })
+        .map(|mut commit| {
+            commit.done = stats.iter().any(|s| commit.id == s.commit);
+            commit
+        })
         .collect::<Vec<_>>();
 
     let crate_names = setup_compile_stats(&stats, &cache_id);
