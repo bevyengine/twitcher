@@ -46,7 +46,7 @@
         <script>
             const commits = [
               {% for commit in commits -%}
-              {'summary': "{{commit.summary}}", 'id': "{{commit.id}}", 'pr': {{commit.pr}}, 'timestamp': {{commit.timestamp}}},
+              {'summary': "{{commit.summary}}", 'id': "{{commit.id}}", 'pr': {{commit.pr}}, 'timestamp': {{commit.timestamp}}, 'done': {{commit.done}}},
               {% endfor -%}
             ];
         </script>
@@ -157,13 +157,24 @@
                     align-items: center;
                 "
             >
-                <div
-                    id="previous-link"
-                    class="disabled"
-                    onclick="navigatePrevious();"
-                    style="cursor: pointer"
-                >
-                    &lt;-
+                <div style="width: 6em; display: flex; align-items: center">
+                    <div
+                        id="previous-link"
+                        class="disabled"
+                        onclick="navigatePrevious();"
+                        style="cursor: pointer"
+                    >
+                        &lt;-
+                    </div>
+                    <div
+                        style="
+                            font-style: italic;
+                            font-size: 0.8rem;
+                            color: grey;
+                            margin-left: 1em;
+                        "
+                        id="previous-count"
+                    ></div>
                 </div>
                 <div
                     style="
@@ -189,12 +200,31 @@
                     </a>
                 </div>
                 <div
-                    id="next-link"
-                    class="disabled"
-                    onclick="navigateNext();"
-                    style="cursor: pointer"
+                    style="
+                        width: 6em;
+                        display: flex;
+                        align-items: center;
+                        justify-content: end;
+                    "
                 >
-                    -&gt;
+                    <div
+                        style="
+                            font-style: italic;
+                            font-size: 0.8rem;
+                            color: grey;
+                            margin-right: 1em;
+                        "
+                        id="next-count"
+                    ></div>
+
+                    <div
+                        id="next-link"
+                        class="disabled"
+                        onclick="navigateNext();"
+                        style="cursor: pointer"
+                    >
+                        -&gt;
+                    </div>
                 </div>
             </div>
         </div>
@@ -581,23 +611,46 @@
 
             function updateNavigationLinks(commit) {
                 const prevLink = document.getElementById("previous-link");
+                const prevCount = document.getElementById("previous-count");
                 const nextLink = document.getElementById("next-link");
+                const nextCount = document.getElementById("next-count");
                 const i = getCommitIndex(commit);
+                var i_prev = i + 1;
+                while (!commits[i_prev].done && i_prev <= commits.length) {
+                    i_prev += 1;
+                }
+                var i_next = i - 1;
+                while (!commits[i_next].done && i_next > 0) {
+                    i_next -= 1;
+                }
+                if (i_next == 0 && !commits[i_next].done) {
+                    i_next -= 1;
+                }
 
-                if (i >= 0 && i < commits.length - 1) {
+                if (i >= 0 && i_prev < commits.length) {
                     prevLink.classList.remove("disabled");
-                    prevLink.href = "#" + commits[i + 1].id;
+                    prevLink.href = "#" + commits[i_prev].id;
                 } else {
                     prevLink.classList.add("disabled");
                     prevLink.removeAttribute("href");
                 }
+                if (i_prev != i + 1) {
+                    prevCount.innerHTML = `${i_prev - i - 1} commits`;
+                } else {
+                    prevCount.innerHTML = "";
+                }
 
-                if (i > 0) {
+                if (i_next > 0) {
                     nextLink.classList.remove("disabled");
-                    nextLink.href = "#" + commits[i - 1].id;
+                    nextLink.href = "#" + commits[i_next].id;
                 } else {
                     nextLink.classList.add("disabled");
                     nextLink.removeAttribute("href");
+                }
+                if (i_next != i - 1) {
+                    nextCount.innerHTML = `${i - i_next - 1} commits`;
+                } else {
+                    nextCount.innerHTML = "";
                 }
             }
 
