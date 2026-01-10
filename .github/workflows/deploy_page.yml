@@ -38,6 +38,7 @@ jobs:
           ref: "main"
           path: "bevy"
           fetch-depth: 500
+      - uses: Swatinem/rust-cache@v2
       - name: Build Graphs
         run: |
           cargo run --bin graphs
