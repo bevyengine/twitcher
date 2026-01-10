@@ -41,16 +41,16 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       - name: Build Graphs
         run: |
-          cargo run --bin graphs
+          cargo run --release --bin graphs
       - name: Build HTML for graphs
         run: |
-          cargo run --bin raw-graphs
+          cargo run --release --bin raw-graphs
       - name: Build Reports
         run: |
-          cargo run --bin reports -- ${{ github.sha }}
+          cargo run --release --bin reports -- ${{ github.sha }}
       - name: Build Landing Page
         run: |
-          cargo run --bin landing-page
+          cargo run --release --bin landing-page
       - name: Prepare Site
         run: |
           mkdir site
