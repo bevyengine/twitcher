@@ -830,7 +830,7 @@
                     i_prev += 1;
                 }
                 var i_next = i - 1;
-                while (!commits[i_next].done && i_next > 0) {
+                while (i_next >= 0 && !commits[i_next].done) {
                     i_next -= 1;
                 }
                 if (i_next == 0 && !commits[i_next].done) {
@@ -850,7 +850,7 @@
                     prevCount.innerHTML = "";
                 }
 
-                if (i_next > 0) {
+                if (i_next >= 0) {
                     nextLink.classList.remove("disabled");
                     nextLink.href = "#" + commits[i_next].id;
                 } else {
