@@ -12,6 +12,7 @@
             .detailedgraph {
                 width: 33%;
                 min-width: 400px;
+                height: 300px;
                 display: flex;
                 flex-direction: column;
                 align-items: center;
@@ -200,7 +201,9 @@
         >
             {% for benchmark in benchmarks -%}
             <div id="{{ benchmark }}" class="detailedgraph">
-                <div id="graph" class="graph"></div>
+                <div id="graph" class="graph">
+                    <div id="{{ benchmark }}-to-remove">{{ benchmark }}</div>
+                </div>
             </div>
             {% endfor %}
         </div>
@@ -446,8 +449,10 @@
             lazyLoading = (id) => {
                 const elem = document.getElementById(id);
                 const checkVisibility = () => {
-                  if (elem.getBoundingClientRect().top < window.innerHeight && elem.getBoundingClientRect().bottom > 0) {
+                    if (elem.getBoundingClientRect().top < window.innerHeight && elem.getBoundingClientRect().bottom > 0) {
                         window.removeEventListener('scroll', checkVisibility )
+                        const to_remove = document.getElementById(`${id}-to-remove`);
+                        to_remove.remove();
 
                         vegaEmbed(
                             "#" + id + " > #graph",
