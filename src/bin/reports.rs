@@ -315,24 +315,30 @@ fn setup_stress_tests(stats: &[Stats], cache_id: &str) -> Vec<(String, f64)> {
             )
             .unwrap();
 
-            let raw_values = values
-                .iter()
-                .map(|v| v.frame_time as f64)
-                .collect::<Vec<_>>();
-            let mean = statistical::mean(raw_values.as_slice());
-            let standard_deviation = statistical::standard_deviation(raw_values.as_slice(), None);
+            let last_week_z_score = if values.len() > 5 {
+                let raw_values = values
+                    .iter()
+                    .map(|v| v.frame_time as f64)
+                    .collect::<Vec<_>>();
+                let mean = statistical::mean(raw_values.as_slice());
+                let standard_deviation =
+                    statistical::standard_deviation(raw_values.as_slice(), None);
 
-            let last_week_z_score = values
-                .iter()
-                .filter(|data| {
-                    (chrono::Utc::now()
-                        - chrono::DateTime::from_timestamp_millis(data.timestamp as i64).unwrap())
-                        <= chrono::Duration::days(7)
-                })
-                .map(|data| data.frame_time)
-                .map(|v| ((v as f64 - mean) / standard_deviation).abs())
-                .max_by(|a, b| a.total_cmp(b))
-                .unwrap_or_default();
+                values
+                    .iter()
+                    .filter(|data| {
+                        (chrono::Utc::now()
+                            - chrono::DateTime::from_timestamp_millis(data.timestamp as i64)
+                                .unwrap())
+                            <= chrono::Duration::days(7)
+                    })
+                    .map(|data| data.frame_time)
+                    .map(|v| ((v as f64 - mean) / standard_deviation).abs())
+                    .max_by(|a, b| a.total_cmp(b))
+                    .unwrap_or_default()
+            } else {
+                0.0
+            };
             Some((stress_test.0, stress_test.1, last_week_z_score))
         })
         .collect::<Vec<_>>();
@@ -397,21 +403,27 @@ fn setup_benchmarks(stats: &[Stats], cache_id: &str) -> Vec<(String, f64)> {
             )
             .unwrap();
 
-            let raw_values = values.iter().map(|v| v.duration as f64).collect::<Vec<_>>();
-            let mean = statistical::mean(raw_values.as_slice());
-            let standard_deviation = statistical::standard_deviation(raw_values.as_slice(), None);
+            let last_week_z_score = if values.len() > 5 {
+                let raw_values = values.iter().map(|v| v.duration as f64).collect::<Vec<_>>();
+                let mean = statistical::mean(raw_values.as_slice());
+                let standard_deviation =
+                    statistical::standard_deviation(raw_values.as_slice(), None);
 
-            let last_week_z_score = values
-                .iter()
-                .filter(|data| {
-                    (chrono::Utc::now()
-                        - chrono::DateTime::from_timestamp_millis(data.timestamp as i64).unwrap())
-                        <= chrono::Duration::days(7)
-                })
-                .map(|data| data.duration)
-                .map(|v| ((v as f64 - mean) / standard_deviation).abs())
-                .max_by(|a, b| a.total_cmp(b))
-                .unwrap_or_default();
+                values
+                    .iter()
+                    .filter(|data| {
+                        (chrono::Utc::now()
+                            - chrono::DateTime::from_timestamp_millis(data.timestamp as i64)
+                                .unwrap())
+                            <= chrono::Duration::days(7)
+                    })
+                    .map(|data| data.duration)
+                    .map(|v| ((v as f64 - mean) / standard_deviation).abs())
+                    .max_by(|a, b| a.total_cmp(b))
+                    .unwrap_or_default()
+            } else {
+                0.0
+            };
             Some((benchmark, safe_name, last_week_z_score))
         })
         .collect::<Vec<_>>();
