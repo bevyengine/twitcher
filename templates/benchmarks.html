@@ -214,7 +214,7 @@
                     s: Math.floor(ns / 1000000000000) % 60,
                     ms: Math.floor(ns / 1000000000) % 1000,
                     us: Math.floor(ns / 1000000) % 1000,
-                    ms: Math.floor(ns / 1000) % 1000,
+                    ns: Math.floor(ns / 1000) % 1000,
                     ps: Math.floor(ns) % 1000,
                 };
                 return Object.entries(time)
