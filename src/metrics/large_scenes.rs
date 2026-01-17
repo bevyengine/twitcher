@@ -122,10 +122,12 @@ impl Metrics for LargeScene {
             .into_iter()
             .flat_map(|f| ["--features".to_string(), f]);
 
-        let path = std::env::current_dir().unwrap();
         let _guard = sh.push_env(
-            "MANGOCONFIG",
-            format!("output_folder={},autostart_log=10", path.display()),
+            "MANGOHUD_CONFIG",
+            format!(
+                "output_folder={},autostart_log=10",
+                std::env::current_dir().unwrap().display()
+            ),
         );
 
         let cmd = cmd!(
