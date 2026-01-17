@@ -122,9 +122,15 @@ impl Metrics for LargeScene {
             .into_iter()
             .flat_map(|f| ["--features".to_string(), f]);
 
+        let path = std::env::current_dir().unwrap();
+        let _guard = sh.push_env(
+            "MANGOCONFIG",
+            format!("output_folder={},autostart_log=10", path.display()),
+        );
+
         let cmd = cmd!(
             sh,
-            "xvfb-run cargo run --release {features...} --package {scene} -- {parameters...}"
+            "xvfb-run mangohud cargo run --release {features...} --package {scene} -- {parameters...}"
         );
         let mut results = HashMap::new();
 
@@ -156,6 +162,25 @@ impl Metrics for LargeScene {
 
         let gpu_memory = gpu_usage.iter().map(|v| v.mem as f32).collect::<Vec<_>>();
         let gpu_usage = gpu_usage.iter().map(|v| v.sm as f32).collect::<Vec<_>>();
+
+        let last_modified_file = std::fs::read_dir(".")
+            .expect("Couldn't access local directory")
+            .flatten()
+            .filter(|f| {
+                f.metadata().unwrap().is_file()
+                    && f.file_name().into_string().unwrap().ends_with(".csv")
+            })
+            .max_by_key(|x| x.metadata().unwrap().modified().unwrap())
+            .unwrap();
+
+        println!("Most recent file: {:?}", last_modified_file);
+
+        let mut rdr = csv::Reader::from_path(last_modified_file.path()).unwrap();
+        for result in rdr.records() {
+            // The iterator yields Result<StringRecord, Error>, so we check the
+            // error here.
+            println!("{:?}", result);
+        }
 
         results.insert(
             format!("{key}.cpu_usage.mean"),
