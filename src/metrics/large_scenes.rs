@@ -255,7 +255,7 @@ impl Metrics for LargeScene {
             let frame_times = rdr
                 .records()
                 .flatten()
-                .flat_map(|record| record.get(0).unwrap().parse::<f32>())
+                .flat_map(|record| record.get(1).unwrap().parse::<f32>())
                 .collect::<Vec<_>>();
 
             results.insert(
