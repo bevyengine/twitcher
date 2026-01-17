@@ -57,6 +57,14 @@ enum Commands {
         #[arg(short, long)]
         nb_frames: u32,
     },
+    LargeScene {
+        #[arg(short, long)]
+        scene: String,
+        #[arg(short, long)]
+        parameters: String,
+        #[arg(short, long)]
+        nb_frames: u32,
+    },
     Benchmarks,
     LlvmLines,
     All,
@@ -228,6 +236,47 @@ impl Commands {
                         stress_test,
                         parameters,
                         nb_frames,
+                    ))]
+                }
+            }
+            Commands::LargeScene {
+                scene,
+                parameters,
+                nb_frames,
+            } => {
+                if scene.is_empty() {
+                    vec![
+                        Box::new(stress_tests::StressTest::on(
+                            "bistro".to_string(),
+                            vec![],
+                            10000,
+                        )),
+                        Box::new(stress_tests::StressTest::on(
+                            "caldera_hotel".to_string(),
+                            vec![],
+                            10000,
+                        )),
+                    ]
+                } else {
+                    let parameters: Vec<String> =
+                        parameters.split(' ').map(|s| s.to_string()).collect();
+                    let parameters = parameters
+                        .chunks(2)
+                        .filter(|p| p.len() == 2)
+                        .map(|p| {
+                            (
+                                p[0].clone(),
+                                if p[1].is_empty() {
+                                    None
+                                } else {
+                                    Some(p[1].clone())
+                                },
+                            )
+                        })
+                        .collect();
+
+                    vec![Box::new(large_scenes::LargeScene::on(
+                        scene, parameters, nb_frames,
                     ))]
                 }
             }
