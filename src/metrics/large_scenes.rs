@@ -42,7 +42,7 @@ impl Metrics for LargeScene {
         if fs_extra::dir::copy(
             format!("~/assets/{scene}"),
             format!("examples/large_scenes/{scene}/assets"),
-            &fs_extra::dir::CopyOptions::new(),
+            &fs_extra::dir::CopyOptions::new().copy_inside(true),
         )
         .is_err()
         {
@@ -51,7 +51,7 @@ impl Metrics for LargeScene {
 
         let sh = Shell::new().unwrap();
         let mut features = self.features.clone();
-        features.push("bevy_ci_testing".to_string());
+        features.push("bevy/bevy_ci_testing".to_string());
         let features = features
             .into_iter()
             .flat_map(|f| ["--features".to_string(), f]);
@@ -117,7 +117,7 @@ impl Metrics for LargeScene {
             .collect::<Vec<String>>();
         let scene = self.scene.clone();
         let mut features = self.features.clone();
-        features.push("bevy_ci_testing".to_string());
+        features.push("bevy/bevy_ci_testing".to_string());
         let features = features
             .into_iter()
             .flat_map(|f| ["--features".to_string(), f]);
