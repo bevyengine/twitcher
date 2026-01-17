@@ -81,16 +81,20 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .collect::<Vec<_>>();
 
     let crate_names = setup_compile_stats(&stats, &cache_id);
-    let mut stress_tests = setup_stress_tests(&stats, &cache_id);
+    let stress_tests = setup_runtime("stress-test-fps", &stats, &cache_id);
+    let large_scenes = setup_runtime("large-scene-fps", &stats, &cache_id);
     let mut benchmarks = setup_benchmarks(&stats, &cache_id);
 
-    let stress_tests_alpha = stress_tests
+    let mut runtime = stress_tests;
+    runtime.extend(large_scenes);
+
+    let stress_tests_alpha = runtime
         .iter()
         .map(|(name, _)| name.clone())
         .collect::<Vec<_>>();
-    stress_tests.sort_by(|a, b| a.1.total_cmp(&b.1));
-    stress_tests.reverse();
-    let stress_tests_z = stress_tests
+    runtime.sort_by(|a, b| a.1.total_cmp(&b.1));
+    runtime.reverse();
+    let stress_tests_z = runtime
         .iter()
         .map(|(name, _)| name.clone())
         .collect::<Vec<_>>();
@@ -225,7 +229,7 @@ fn setup_compile_stats<'a>(stats: &'a [Stats], cache_id: &str) -> Vec<&'a str> {
     crate_names
 }
 
-fn setup_stress_tests(stats: &[Stats], cache_id: &str) -> Vec<(String, f64)> {
+fn setup_runtime(kind: &str, stats: &[Stats], cache_id: &str) -> Vec<(String, f64)> {
     #[derive(Serialize)]
     struct DataPoint {
         timestamp: u128,
@@ -238,7 +242,7 @@ fn setup_stress_tests(stats: &[Stats], cache_id: &str) -> Vec<(String, f64)> {
     let mut stress_tests = stats
         .iter()
         .flat_map(|stat| stat.metrics.keys())
-        .filter(|m| m.starts_with("stress-test-fps") && m.ends_with(".mean"))
+        .filter(|m| m.starts_with(kind) && m.ends_with(".mean"))
         .map(|m| {
             let mut split = m.split('.');
             (split.nth(1).unwrap(), split.next().unwrap())
@@ -265,7 +269,7 @@ fn setup_stress_tests(stats: &[Stats], cache_id: &str) -> Vec<(String, f64)> {
                 .flat_map(|stat| {
                     stat.metrics
                         .get(&format!(
-                            "stress-test-fps.{}.{}.duration",
+                            "{kind}.{}.{}.duration",
                             stress_test.0, stress_test.1
                         ))
                         .map(|value| DataPoint {
@@ -275,7 +279,7 @@ fn setup_stress_tests(stats: &[Stats], cache_id: &str) -> Vec<(String, f64)> {
                                 / (stat
                                     .metrics
                                     .get(&format!(
-                                        "stress-test-fps.{}.{}.frames",
+                                        "{kind}.{}.{}.frames",
                                         stress_test.0, stress_test.1
                                     ))
                                     .cloned()
@@ -284,7 +288,7 @@ fn setup_stress_tests(stats: &[Stats], cache_id: &str) -> Vec<(String, f64)> {
                             cpu: stat
                                 .metrics
                                 .get(&format!(
-                                    "stress-test-fps.{}.{}.cpu_usage.mean",
+                                    "{kind}.{}.{}.cpu_usage.mean",
                                     stress_test.0, stress_test.1
                                 ))
                                 .cloned()
@@ -292,7 +296,7 @@ fn setup_stress_tests(stats: &[Stats], cache_id: &str) -> Vec<(String, f64)> {
                             gpu: stat
                                 .metrics
                                 .get(&format!(
-                                    "stress-test-fps.{}.{}.gpu_usage.mean",
+                                    "{kind}.{}.{}.gpu_usage.mean",
                                     stress_test.0, stress_test.1
                                 ))
                                 .cloned()
