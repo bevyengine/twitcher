@@ -136,7 +136,7 @@ impl Metrics for LargeScene {
         while gpu.try_recv().is_ok() {}
 
         let start = Instant::now();
-        if cmd.output().is_err() {
+        if cmd.run().is_err() {
             // ignore failure due to a missing scene
             return results;
         };
