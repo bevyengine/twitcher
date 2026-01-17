@@ -1,6 +1,6 @@
 use std::{
     collections::HashMap,
-    io::{BufRead, Write},
+    io::Write,
     path::{Path, PathBuf},
     thread,
     time::{Duration, Instant},
@@ -136,7 +136,7 @@ impl Metrics for LargeScene {
         while gpu.try_recv().is_ok() {}
 
         let start = Instant::now();
-        let Ok(output) = cmd.output() else {
+        if cmd.output().is_err() {
             // ignore failure due to a missing scene
             return results;
         };
@@ -157,42 +157,6 @@ impl Metrics for LargeScene {
         let gpu_memory = gpu_usage.iter().map(|v| v.mem as f32).collect::<Vec<_>>();
         let gpu_usage = gpu_usage.iter().map(|v| v.sm as f32).collect::<Vec<_>>();
 
-        let fpss = output
-            .stdout
-            .lines()
-            .chain(output.stderr.lines())
-            .map_while(|line| line.ok())
-            .filter(|line| line.contains("fps"))
-            .filter(|line| line.contains("avg"))
-            .map(|line| line.split("fps").nth(1).unwrap().to_string())
-            .map(|line| line.split("(").nth(0).unwrap().to_string())
-            .map(|line| line.split(":").nth(1).unwrap().to_string())
-            .map(|line| line.trim().to_string())
-            .map(|line| line.parse::<f32>().unwrap())
-            .collect::<Vec<_>>();
-
-        if !fpss.is_empty() {
-            results.insert(
-                format!("{key}.mean"),
-                (statistical::mean(&fpss) * 1000.0) as u64,
-            );
-            results.insert(
-                format!("{key}.median"),
-                (statistical::median(&fpss) * 1000.0) as u64,
-            );
-            results.insert(
-                format!("{key}.min"),
-                fpss.iter().map(|d| (d * 1000.0) as u64).min().unwrap(),
-            );
-            results.insert(
-                format!("{key}.max"),
-                fpss.iter().map(|d| (d * 1000.0) as u64).max().unwrap(),
-            );
-            results.insert(
-                format!("{key}.std_dev"),
-                (statistical::standard_deviation(&fpss, None) * 1000.0) as u64,
-            );
-        }
         results.insert(
             format!("{key}.cpu_usage.mean"),
             (statistical::mean(&cpu_usage) * 1000.0) as u64,
