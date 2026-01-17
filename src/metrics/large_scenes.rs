@@ -1,6 +1,6 @@
 use std::{
     collections::HashMap,
-    io::Write,
+    io::{BufRead, Write},
     path::{Path, PathBuf},
     thread,
     time::{Duration, Instant},
@@ -122,9 +122,17 @@ impl Metrics for LargeScene {
             .into_iter()
             .flat_map(|f| ["--features".to_string(), f]);
 
+        let _guard = sh.push_env(
+            "MANGOHUD_CONFIG",
+            format!(
+                "output_folder={},autostart_log=10",
+                std::env::current_dir().unwrap().display()
+            ),
+        );
+
         let cmd = cmd!(
             sh,
-            "xvfb-run cargo run --release {features...} --package {scene} -- {parameters...}"
+            "xvfb-run mangohud cargo run --release {features...} --package {scene} -- {parameters...}"
         );
         let mut results = HashMap::new();
 
@@ -227,6 +235,58 @@ impl Metrics for LargeScene {
         );
         results.insert(format!("{key}.duration"), elapsed.as_millis() as u64);
         results.insert(format!("{key}.frames"), self.nb_frames as u64);
+
+        if let Some(last_modified_file) = std::fs::read_dir(".")
+            .expect("Couldn't access local directory")
+            .flatten()
+            .filter(|f| {
+                f.metadata().unwrap().is_file()
+                    && f.file_name().into_string().unwrap().ends_with(".csv")
+            })
+            .max_by_key(|x| x.metadata().unwrap().modified().unwrap())
+        {
+            let csv_file = std::fs::File::open(last_modified_file.path()).unwrap();
+            // Skip first two lines as they're info about system
+            let mut reader = std::io::BufReader::new(csv_file);
+            let mut tmp = String::new();
+            let _ = reader.read_line(&mut tmp);
+            let _ = reader.read_line(&mut tmp);
+            let mut rdr = csv::ReaderBuilder::new().from_reader(reader);
+            let frame_times = rdr
+                .records()
+                .flatten()
+                .flat_map(|record| record.get(1).unwrap().parse::<f32>())
+                .collect::<Vec<_>>();
+
+            results.insert(
+                format!("{key}.frame_time.mean"),
+                (statistical::mean(&frame_times) * 1000.0) as u64,
+            );
+            results.insert(
+                format!("{key}.frame_time.median"),
+                (statistical::median(&frame_times) * 1000.0) as u64,
+            );
+            results.insert(
+                format!("{key}.frame_time.min"),
+                frame_times
+                    .iter()
+                    .map(|d| (d * 1000.0) as u64)
+                    .min()
+                    .unwrap(),
+            );
+            results.insert(
+                format!("{key}.frame_time.max"),
+                frame_times
+                    .iter()
+                    .map(|d| (d * 1000.0) as u64)
+                    .max()
+                    .unwrap(),
+            );
+            results.insert(
+                format!("{key}.frame_time.std_dev"),
+                (statistical::standard_deviation(&frame_times, None) * 1000.0) as u64,
+            );
+        }
 
         results
     }
