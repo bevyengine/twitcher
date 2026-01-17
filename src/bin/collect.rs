@@ -246,12 +246,12 @@ impl Commands {
             } => {
                 if scene.is_empty() {
                     vec![
-                        Box::new(stress_tests::StressTest::on(
+                        Box::new(large_scenes::LargeScene::on(
                             "bistro".to_string(),
                             vec![],
                             25000,
                         )),
-                        Box::new(stress_tests::StressTest::on(
+                        Box::new(large_scenes::LargeScene::on(
                             "caldera_hotel".to_string(),
                             vec![],
                             25000,
