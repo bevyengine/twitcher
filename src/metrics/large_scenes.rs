@@ -1,0 +1,310 @@
+use std::{
+    collections::HashMap,
+    io::Write,
+    path::{Path, PathBuf},
+    thread,
+    time::{Duration, Instant},
+};
+
+use crossbeam::channel::Receiver;
+use xshell::{Shell, cmd};
+
+use crate::Metrics;
+
+#[derive(Debug)]
+pub struct LargeScene {
+    pub scene: String,
+    pub parameters: Vec<(String, Option<String>)>,
+    pub nb_frames: u32,
+    pub features: Vec<String>,
+}
+
+impl LargeScene {
+    pub fn on(scene: String, parameters: Vec<(String, Option<String>)>, nb_frames: u32) -> Self {
+        Self {
+            scene,
+            parameters,
+            nb_frames,
+            features: vec![],
+        }
+    }
+
+    pub fn with_features(mut self, features: Vec<&str>) -> Self {
+        self.features = features.into_iter().map(|f| f.to_string()).collect();
+        self
+    }
+}
+
+impl Metrics for LargeScene {
+    fn prepare(&self) -> bool {
+        let scene = self.scene.clone();
+
+        if fs_extra::dir::copy(
+            format!("/assets/{scene}"),
+            format!("examples/large_scenes/{scene}/assets"),
+            &fs_extra::dir::CopyOptions::new().copy_inside(true),
+        )
+        .is_err()
+        {
+            return false;
+        }
+
+        let sh = Shell::new().unwrap();
+        let mut features = self.features.clone();
+        features.push("bevy/bevy_ci_testing".to_string());
+        let features = features
+            .into_iter()
+            .flat_map(|f| ["--features".to_string(), f]);
+
+        cmd!(sh, "cargo build --release {features...} --package {scene}")
+            .run()
+            .is_ok()
+    }
+
+    fn artifacts(&self) -> HashMap<String, PathBuf> {
+        std::fs::File::create("done").unwrap();
+        HashMap::from([(
+            format!(
+                "large-scene-fps.{}.{}",
+                self.scene,
+                self.parameters
+                    .iter()
+                    .map(|(p, v)| if let Some(v) = v {
+                        format!("{}-{}", p, v)
+                    } else {
+                        p.clone()
+                    })
+                    .fold("params".to_string(), |acc, s| format!("{}-{}", acc, s))
+            ),
+            Path::new("done").to_path_buf(),
+        )])
+    }
+
+    fn collect(&self) -> HashMap<String, u64> {
+        let cpu = cpu_usage();
+        let gpu = gpu_usage();
+
+        let key = format!(
+            "large-scene-fps.{}.{}",
+            self.scene,
+            self.parameters
+                .iter()
+                .map(|(p, v)| if let Some(v) = v {
+                    format!("{}-{}", p, v)
+                } else {
+                    p.clone()
+                })
+                .fold("params".to_string(), |acc, s| format!("{}-{}", acc, s))
+        );
+        let config = "twitcher_config.ron";
+        let mut config_file = std::fs::File::create(config).unwrap();
+        config_file
+            .write_fmt(format_args!("(events: [({}, AppExit)])", self.nb_frames))
+            .unwrap();
+        let sh = Shell::new().unwrap();
+        sh.set_var("CI_TESTING_CONFIG", config);
+
+        let parameters = self
+            .parameters
+            .iter()
+            .flat_map(|(p, v)| {
+                if let Some(v) = v {
+                    vec![format!("--{}", p), v.clone()]
+                } else {
+                    vec![format!("--{}", p)]
+                }
+            })
+            .collect::<Vec<String>>();
+        let scene = self.scene.clone();
+        let mut features = self.features.clone();
+        features.push("bevy/bevy_ci_testing".to_string());
+        let features = features
+            .into_iter()
+            .flat_map(|f| ["--features".to_string(), f]);
+
+        let cmd = cmd!(
+            sh,
+            "xvfb-run cargo run --release {features...} --package {scene} -- {parameters...}"
+        );
+        let mut results = HashMap::new();
+
+        // Wait for the monitoring threads to start
+        let _ = cpu.recv();
+        let _ = gpu.recv();
+        // Clear channels
+        while cpu.try_recv().is_ok() {}
+        while gpu.try_recv().is_ok() {}
+
+        let start = Instant::now();
+        if cmd.run().is_err() {
+            // ignore failure due to a missing scene
+            return results;
+        };
+        let elapsed = start.elapsed();
+
+        let cpu_usage = cpu.try_iter().skip(2).collect::<Vec<_>>();
+        while cpu.try_recv().is_ok() {}
+        std::mem::drop(cpu);
+
+        let gpu_usage = gpu
+            .try_iter()
+            .filter(|v| v.sm != 0)
+            .skip(2)
+            .collect::<Vec<_>>();
+        while gpu.try_recv().is_ok() {}
+        std::mem::drop(gpu);
+
+        let gpu_memory = gpu_usage.iter().map(|v| v.mem as f32).collect::<Vec<_>>();
+        let gpu_usage = gpu_usage.iter().map(|v| v.sm as f32).collect::<Vec<_>>();
+
+        results.insert(
+            format!("{key}.cpu_usage.mean"),
+            (statistical::mean(&cpu_usage) * 1000.0) as u64,
+        );
+        results.insert(
+            format!("{key}.cpu_usage.median"),
+            (statistical::median(&cpu_usage) * 1000.0) as u64,
+        );
+        results.insert(
+            format!("{key}.cpu_usage.min"),
+            cpu_usage.iter().map(|d| (d * 1000.0) as u64).min().unwrap(),
+        );
+        results.insert(
+            format!("{key}.cpu_usage.max"),
+            cpu_usage.iter().map(|d| (d * 1000.0) as u64).max().unwrap(),
+        );
+        results.insert(
+            format!("{key}.cpu_usage.std_dev"),
+            (statistical::standard_deviation(&cpu_usage, None) * 1000.0) as u64,
+        );
+        results.insert(
+            format!("{key}.gpu_usage.mean"),
+            (statistical::mean(&gpu_usage) * 1000.0) as u64,
+        );
+        results.insert(
+            format!("{key}.gpu_usage.median"),
+            (statistical::median(&gpu_usage) * 1000.0) as u64,
+        );
+        results.insert(
+            format!("{key}.gpu_usage.min"),
+            gpu_usage.iter().map(|d| (d * 1000.0) as u64).min().unwrap(),
+        );
+        results.insert(
+            format!("{key}.gpu_usage.max"),
+            gpu_usage.iter().map(|d| (d * 1000.0) as u64).max().unwrap(),
+        );
+        results.insert(
+            format!("{key}.gpu_usage.std_dev"),
+            (statistical::standard_deviation(&gpu_usage, None) * 1000.0) as u64,
+        );
+        results.insert(
+            format!("{key}.gpu_memory.mean"),
+            (statistical::mean(&gpu_memory) * 1000.0) as u64,
+        );
+        results.insert(
+            format!("{key}.gpu_memory.median"),
+            (statistical::median(&gpu_memory) * 1000.0) as u64,
+        );
+        results.insert(
+            format!("{key}.gpu_memory.min"),
+            gpu_memory
+                .iter()
+                .map(|d| (d * 1000.0) as u64)
+                .min()
+                .unwrap(),
+        );
+        results.insert(
+            format!("{key}.gpu_memory.max"),
+            gpu_memory
+                .iter()
+                .map(|d| (d * 1000.0) as u64)
+                .max()
+                .unwrap(),
+        );
+        results.insert(
+            format!("{key}.gpu_memory.std_dev"),
+            (statistical::standard_deviation(&gpu_memory, None) * 1000.0) as u64,
+        );
+        results.insert(format!("{key}.duration"), elapsed.as_millis() as u64);
+        results.insert(format!("{key}.frames"), self.nb_frames as u64);
+
+        results
+    }
+}
+
+fn cpu_usage() -> Receiver<f32> {
+    let (tx, rx) = crossbeam::channel::unbounded();
+
+    thread::spawn(move || {
+        let mut sys = sysinfo::System::new();
+        let delay = sysinfo::MINIMUM_CPU_UPDATE_INTERVAL.max(Duration::from_secs(1));
+
+        loop {
+            sys.refresh_cpu_usage();
+            if tx.send(sys.global_cpu_usage()).is_err() {
+                break;
+            }
+            std::thread::sleep(delay);
+        }
+    });
+
+    rx
+}
+
+#[derive(Debug)]
+struct GpuUsage {
+    sm: u32,
+    mem: u32,
+}
+
+fn gpu_usage() -> Receiver<GpuUsage> {
+    let (tx, rx) = crossbeam::channel::unbounded();
+    use nvml_wrapper::{Nvml, error::NvmlError};
+
+    thread::spawn(move || {
+        let Ok(nvml) = Nvml::init() else {
+            println!("Couldn't load nvidia driver");
+            return;
+        };
+        let device = nvml.device_by_index(0).unwrap();
+        let delay = Duration::from_secs(1);
+
+        let mut timestamp = None;
+
+        let _ = tx.try_send(GpuUsage { sm: 0, mem: 0 });
+
+        loop {
+            let processes = match device.process_utilization_stats(timestamp) {
+                Ok(processes) => processes,
+                Err(NvmlError::NotFound) => {
+                    // No process using the GPU found
+                    if tx.send(GpuUsage { sm: 0, mem: 0 }).is_err() {
+                        break;
+                    }
+                    continue;
+                }
+                Err(_) => {
+                    println!("Couldn't get process utilization stats");
+                    break;
+                }
+            };
+
+            let process = &processes[0];
+            timestamp = Some(process.timestamp);
+
+            if tx
+                .send(GpuUsage {
+                    sm: process.sm_util,
+                    mem: process.mem_util,
+                })
+                .is_err()
+            {
+                break;
+            }
+            std::thread::sleep(delay);
+        }
+        let _ = tx.try_send(GpuUsage { sm: 0, mem: 0 });
+    });
+
+    rx
+}
