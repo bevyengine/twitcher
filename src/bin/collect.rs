@@ -249,12 +249,12 @@ impl Commands {
                         Box::new(stress_tests::StressTest::on(
                             "bistro".to_string(),
                             vec![],
-                            10000,
+                            25000,
                         )),
                         Box::new(stress_tests::StressTest::on(
                             "caldera_hotel".to_string(),
                             vec![],
-                            10000,
+                            25000,
                         )),
                     ]
                 } else {
