@@ -39,9 +39,10 @@ impl Metrics for LargeScene {
     fn prepare(&self) -> bool {
         let scene = self.scene.clone();
 
-        if std::fs::copy(
+        if fs_extra::dir::copy(
             format!("~/assets/{scene}"),
             format!("examples/large_scenes/{scene}/assets"),
+            &fs_extra::dir::CopyOptions::new(),
         )
         .is_err()
         {
