@@ -311,8 +311,9 @@ fn setup_runtime(kind: &str, stats: &[Stats], cache_id: &str) -> Vec<(String, f6
 
             serde_json::to_writer(
                 std::fs::File::create(format!(
-                    "data/{}_{}{cache_id}.json",
-                    stress_test.0, stress_test.1
+                    "data/{}{}{cache_id}.json",
+                    stress_test.0,
+                    stress_test.1.replace("params", ""),
                 ))
                 .unwrap(),
                 &values,
@@ -349,7 +350,7 @@ fn setup_runtime(kind: &str, stats: &[Stats], cache_id: &str) -> Vec<(String, f6
 
     with_z_scores
         .into_iter()
-        .map(|(name, params, z_score)| (format!("{name}_{params}"), z_score))
+        .map(|(name, params, z_score)| (format!("{name}{}", params.replace("params", "")), z_score))
         .collect()
 }
 
