@@ -249,439 +249,473 @@
         </div>
 
         <script>
-            vega.expressionFunction("percent", function (v, params) {
-                return `${Math.round(v / 10)/100.0}%`;
-            });
-            vega.expressionFunction("duration", function (µs, params) {
-                const time = {
-                    h: Math.floor(µs / 3600000000) % 24,
-                    m: Math.floor(µs / 60000000) % 60,
-                    s: Math.floor(µs / 1000000) % 60,
-                    ms: Math.floor(µs / 1000) % 1000,
-                    us: Math.floor(µs) % 1000,
-                };
-                return Object.entries(time)
-                    .filter((val) => val[1] !== 0)
-                    .map(([key, val]) => `${val}${key}`)
-                    .join(" ");
-            });
-
-
-            crateCompilationTime = (file, title) => {
-                return {
-                    $schema: "https://vega.github.io/schema/vega-lite/v6.json",
-                    data: {
-                        url: file,
-                    },
-                    width: "container",
-                    height: "container",
-                    transform: [
-                        {
-                            calculate:
-                              "'#' + datum.commit",
-                            as: "url",
-                        },
-                    ],
-                    title: title,
-                    params: [
-                      { name: "between", value: [{{ onemonthago }}, {{ end }}] },
-                      { name: "has_zero", value: true },
-                      { name: "highlight", value: "" },
-                    ],
-
-                    layer: [
-                        {
-                            mark: {
-                                type: "circle",
-                            },
-                            encoding: {
-                                x: {
-                                    title: "",
-                                    field: "timestamp",
-                                    type: "temporal",
-                                    scale: {domain: {selection: "between"}},
-                                },
-                                y: {
-                                    field: "frame_time",
-                                    type: "quantitative",
-                                    scale: {
-                                        zero: { expr: "has_zero" },
-                                    },
-                                    axis: {
-                                        formatType: "duration",
-                                    },
-                                    title: "Duration",
-                                },
-                                tooltip: [
-                                    {
-                                        field: "frame_time",
-                                        formatType: "duration",
-                                        title: "Duration",
-                                    },
-                                    {
-                                        field: "cpu",
-                                        formatType: "percent",
-                                        title: "CPU Usage",
-                                    },
-                                    {
-                                        field: "gpu",
-                                        formatType: "percent",
-                                        title: "GPU Usage",
-                                    },
-                                    { field: "commit" },
-                                    {
-                                        field: "timestamp",
-                                        title: "Time",
-                                        type: "temporal",
-                                        format: "%Y-%m-%d %H:%M:%S",
-                                    }
-                                ],
-                                href: { field: "url", type: "nominal" },
-                                color: {
-                                    condition: [
-                                        {
-                                            test: { field: "commit", equal: {expr: "highlight"} },
-                                            value: "rgb(200, 20, 0)",
-                                        },
-                                    ],
-                                    value: "rgb(76, 120, 168)",
-                                },
-                            },
-                        },
-                        {
-                            mark: {
-                                type: "line",
-                                color: "green",
-                            },
-                            encoding: {
-                                x: {
-                                    title: "",
-                                    field: "timestamp",
-                                    type: "temporal",
-                                    scale: {domain: {selection: "between"}},
-                                },
-                                y: {
-                                    field: "cpu",
-                                    type: "quantitative",
-                                    scale: {
-                                      domain: [0, 100000]
-                                    },
-                                    axis: {
-                                        formatType: "percent",
-                                    },
-                                    title: "Usage",
-                                },
-                            },
-                        },
-                        {
-                            mark: {
-                                type: "line",
-                                color: "orange",
-                            },
-                            encoding: {
-                                x: {
-                                    title: "",
-                                    field: "timestamp",
-                                    type: "temporal",
-                                    scale: {domain: {selection: "between"}},
-                                },
-                                y: {
-                                    field: "gpu",
-                                    type: "quantitative",
-                                    scale: {
-                                        domain: [0, 100000]
-                                    },
-                                    axis: {
-                                        formatType: "percent",
-                                    },
-                                    title: "Usage",
-                                },
-                            },
-                        },
-                    ],
-                    resolve: {scale: {y: "independent"}},
-                    config: { customFormatTypes: true }
-                };
-            };
-            domain = () => {
-                return {
-                    $schema: "https://vega.github.io/schema/vega-lite/v6.json",
-                    data: {
-                        name: "DomainData",
-                    },
-                    width: "container",
-                    height: "container",
-                    height: 60,
-                    selection: {
-                        between: {
-                            type: "interval",
-                            encodings: ["x"],
-                            init: {x: [{{ onemonthago }}, {{ end }}]}
-                        }
-                    },
-                    mark: {
-                        type: "line",
-                    },
-                    encoding: {
-                        x: {
-                            field: "timestamp",
-                            type: "temporal",
-                              scale: {
-                                  domain: [{{ start }}, {{ end }}],
-                              },
-                        },
-                        y: {
-                            field: "value",
-                            type: "quantitative",
-                            scale: {
-                                zero: false,
-                            },
-                            axis: {
-                                grid: false,
-                                tickCount: 0,
-                            },
-                            title: "",
-                        }
-                    },
-                    config: { customFormatTypes: true }
-                };
-            };
-
-            function isEmpty(obj) {
-                for (const prop in obj) {
-                    if (Object.hasOwn(obj, prop)) {
-                        return false;
-                    }
-                }
-
-                return true;
-            }
-
-            let views = {};
-            let last = 0;
-            let step = 10;
-            async function refreshViews() {
-                let slice = Object.entries(views).slice(last, last + step);
-                for (i in slice) {
-                    let view = slice[i][1];
-                    view.runAsync();
-                }
-                last = last + step;
-                if (last > Object.keys(views).length) {
-                    last = 0;
-                    return;
-                }
-                setTimeout(refreshViews, 100);
-            }
-
-            async function set_interval(duration) {
-                var end = {{ end }};
-                if (timestamps.length == 2) {
-                    end = timestamps[1];
-                }
-                start = end - duration;
-                let start_percent = (start - {{ start }}) / ({{ end }} - {{ start }});
-                let end_percent = (end - {{ start }}) / ({{ end }} - {{ start }});
-
-                let width = domain.signal("width");
-                domain.signal("between_x", [start_percent * width, end_percent * width]).runAsync();
-            }
-            async function clear_interval() {
-                domain.signal("between_x", {}).runAsync();
-            }
-
-            timestamps = [];
-            highlightedCommit = window.location.hash.split("#")[1];
-            async function share_interval(value) {
-
-                var percent = [0, 1];
-
-                if (!isEmpty(value)) {
-                    let width = domain.signal("width");
-                    percent = value.map((x) => x / width);
-                    if (value[0] == value[1]) {
-                        percent = [0, 1];
-                    }
-                }
-                timestamps = percent.map(
-                    (x) => x * ({{ end }} - {{ start }}) + {{ start }},
-                );
-                for (name in views) {
-                    let view = views[name];
-                    view.signal("between", timestamps);
-                }
-                last = 0;
-                setTimeout(refreshViews, 100);
-            }
-
-            async function toggleDomain(data) {
-                fetch(data)
-                    .then((response) => response.json())
-                    .then((json) => {
-                        domain
-                            .change(
-                                "DomainData",
-                                vega.changeset().remove((_) => true),
-                            )
-                            .run();
-                        domain.insert("DomainData", json).runAsync();
-                    });
-            }
-
-            vegaEmbed(
-                "#domain-controller",
-                domain(),
-                { mode: "vega-lite", actions: false, theme: "carbong100" },
-            ).then((embedded) => {
-                domain = embedded.view;
-                fetch("data/compile-time-unix-x86_64-16.mean{{ cache_id }}.json")
-                    .then((response) => response.json())
-                    .then((json) =>
-                        domain.insert("DomainData", json).runAsync(),
-                    );
-
-                embedded.view.addSignalListener(
-                    "between_x",
-                    (_, value) => share_interval(value),
-                );
-            });
-
-            lazyLoading = (id) => {
-                const elem = document.getElementById(id);
-                const checkVisibility = () => {
-                    if (elem.getBoundingClientRect().top < window.innerHeight && elem.getBoundingClientRect().bottom > 0) {
-                        window.removeEventListener('scroll', checkVisibility )
-                        const to_remove = document.getElementById(`${id}-to-remove`);
-                        to_remove.remove();
-
-                        vegaEmbed(
-                            "#" + id + " > #graph",
-                            crateCompilationTime(
-                                "data/" + id + "{{ cache_id }}.json",
-                                id,
-                            ),
-                            { mode: "vega-lite", actions: false, theme: "carbong90" },
-                        ).then((embedded) => {
-                            views[id] = embedded.view;
-                            if (timestamps.length > 0) {
-                                embedded.view.signal("between", timestamps).runAsync();
+                        vega.expressionFunction("percent", function (v, params) {
+                            return `${Math.round(v / 10)/100.0}%`;
+                        });
+                        vega.expressionFunction("duration", function (µs, params) {
+                            if (µs === 0) {
+                                return "0";
                             }
-                            if (highlightedCommit !== undefined) {
-                                embedded.view.signal("highlight", highlightedCommit).runAsync();
-                            }
+                            const time = {
+                                h: Math.floor(µs / 3600000000) % 24,
+                                m: Math.floor(µs / 60000000) % 60,
+                                s: Math.floor(µs / 1000000) % 60,
+                                ms: Math.floor(µs / 1000) % 1000,
+                                us: Math.floor(µs) % 1000,
+                            };
+                            return Object.entries(time)
+                                .filter((val) => val[1] !== 0)
+                                .map(([key, val]) => `${val}${key}`)
+                                .join(" ");
                         });
 
 
-                    }
-                }
-                window.addEventListener('scroll', checkVisibility);
-                checkVisibility();
-            }
+                        crateCompilationTime = (file, title) => {
+                            return {
+                                $schema: "https://vega.github.io/schema/vega-lite/v6.json",
+                                data: {
+                                    url: file,
+                                },
+                                width: "container",
+                                height: "container",
+                                transform: [
+                                    {
+                                        calculate:
+                                          "'#' + datum.commit",
+                                        as: "url",
+                                    },
+                                ],
+                                title: title,
+                                params: [
+                                  { name: "between", value: [{{ onemonthago }}, {{ end }}] },
+                                  { name: "has_zero", value: true },
+                                  { name: "highlight", value: "" },
+                                ],
 
-            {% for stress_test in stress_tests -%}
-            lazyLoading("{{ stress_test }}");
-            {% endfor %}
+                                layer: [
+                                    {layer:[{
+                                        mark: {
+                                            type: "circle",
+                                            color: "red",
+                                        },
+                                        encoding: {
+                                            x: {
+                                                title: "",
+                                                field: "timestamp",
+                                                type: "temporal",
+                                                scale: {domain: {selection: "between"}},
+                                            },
+                                            y: {
+                                                field: "frame_time_mangohud",
+                                                type: "quantitative",
+                                                scale: {
+                                                    zero: { expr: "has_zero" },
+                                                },
+                                                axis: {
+                                                    formatType: "duration",
+                                                },
+                                                title: "Frame Time",
+                                            },
+                                        }
+                                    },
+                                    {
+                                        mark: {
+                                            type: "circle",
+                                        },
+                                        encoding: {
+                                            x: {
+                                                title: "",
+                                                field: "timestamp",
+                                                type: "temporal",
+                                                scale: {domain: {selection: "between"}},
+                                            },
+                                            y: {
+                                                field: "frame_time",
+                                                type: "quantitative",
+                                                scale: {
+                                                    zero: { expr: "has_zero" },
+                                                },
+                                                axis: {
+                                                    formatType: "duration",
+                                                },
+                                                title: "Frame Time",
+                                            },
+                                            tooltip: [
+                                                {
+                                                    field: "frame_time",
+                                                    formatType: "duration",
+                                                    title: "Duration",
+                                                },
+                                                {
+                                                    field: "frame_time_mangohud",
+                                                    formatType: "duration",
+                                                    title: "Frame Time MangoHud",
+                                                },
+                                                {
+                                                    field: "cpu",
+                                                    formatType: "percent",
+                                                    title: "CPU Usage",
+                                                },
+                                                {
+                                                    field: "gpu",
+                                                    formatType: "percent",
+                                                    title: "GPU Usage",
+                                                },
+                                                { field: "commit" },
+                                                {
+                                                    field: "timestamp",
+                                                    title: "Time",
+                                                    type: "temporal",
+                                                    format: "%Y-%m-%d %H:%M:%S",
+                                                }
+                                            ],
+                                            href: { field: "url", type: "nominal" },
+                                            color: {
+                                                condition: [
+                                                    {
+                                                        test: { field: "commit", equal: {expr: "highlight"} },
+                                                        value: "rgb(200, 20, 0)",
+                                                    },
+                                                ],
+                                                value: "rgb(76, 120, 168)",
+                                            },
+                                        },
+                                    },],},
+            {layer:[                        {
+                                        mark: {
+                                            type: "line",
+                                            color: "green",
+                                        },
+                                        encoding: {
+                                            x: {
+                                                title: "",
+                                                field: "timestamp",
+                                                type: "temporal",
+                                                scale: {domain: {selection: "between"}},
+                                            },
+                                            y: {
+                                                field: "cpu",
+                                                type: "quantitative",
+                                                scale: {
+                                                  domain: [0, 100000]
+                                                },
+                                                axis: {
+                                                    formatType: "percent",
+                                                },
+                                                title: "Usage",
+                                            },
+                                        },
+                                    },
+                                    {
+                                        mark: {
+                                            type: "line",
+                                            color: "orange",
+                                        },
+                                        encoding: {
+                                            x: {
+                                                title: "",
+                                                field: "timestamp",
+                                                type: "temporal",
+                                                scale: {domain: {selection: "between"}},
+                                            },
+                                            y: {
+                                                field: "gpu",
+                                                type: "quantitative",
+                                                scale: {
+                                                    domain: [0, 100000]
+                                                },
+                                                axis: {
+                                                    formatType: "percent",
+                                                },
+                                                title: "Usage",
+                                            },
+                                        },
+                                    },],},
+                                ],
+                                // resolve: {scale: {y: "independent"}},
+                                resolve: {axis: {y: "independent"}, scale: {y: "independent"}},
+                                config: { customFormatTypes: true }
+                            };
+                        };
+                        domain = () => {
+                            return {
+                                $schema: "https://vega.github.io/schema/vega-lite/v6.json",
+                                data: {
+                                    name: "DomainData",
+                                },
+                                width: "container",
+                                height: "container",
+                                height: 60,
+                                selection: {
+                                    between: {
+                                        type: "interval",
+                                        encodings: ["x"],
+                                        init: {x: [{{ onemonthago }}, {{ end }}]}
+                                    }
+                                },
+                                mark: {
+                                    type: "line",
+                                },
+                                encoding: {
+                                    x: {
+                                        field: "timestamp",
+                                        type: "temporal",
+                                          scale: {
+                                              domain: [{{ start }}, {{ end }}],
+                                          },
+                                    },
+                                    y: {
+                                        field: "value",
+                                        type: "quantitative",
+                                        scale: {
+                                            zero: false,
+                                        },
+                                        axis: {
+                                            grid: false,
+                                            tickCount: 0,
+                                        },
+                                        title: "",
+                                    }
+                                },
+                                config: { customFormatTypes: true }
+                            };
+                        };
 
-            function getCommitIndex(commit) {
-                for (var i = 0; i < commits.length; i++) {
-                  if (commits[i].id === commit) {
-                    return i;
-                  }
-                }
-                return -1;
-            }
+                        function isEmpty(obj) {
+                            for (const prop in obj) {
+                                if (Object.hasOwn(obj, prop)) {
+                                    return false;
+                                }
+                            }
 
-            function updateBevyLink(commit) {
-                let i = getCommitIndex(commit);
-                updatebevyLinkByHistory(i)
-            }
+                            return true;
+                        }
 
-            function updatebevyLinkByHistory(i) {
-              let current_commit = commits[i];
+                        let views = {};
+                        let last = 0;
+                        let step = 10;
+                        async function refreshViews() {
+                            let slice = Object.entries(views).slice(last, last + step);
+                            for (i in slice) {
+                                let view = slice[i][1];
+                                view.runAsync();
+                            }
+                            last = last + step;
+                            if (last > Object.keys(views).length) {
+                                last = 0;
+                                return;
+                            }
+                            setTimeout(refreshViews, 100);
+                        }
 
-              const bevyLink = document.getElementById("bevy-link");
+                        async function set_interval(duration) {
+                            var end = {{ end }};
+                            if (timestamps.length == 2) {
+                                end = timestamps[1];
+                            }
+                            start = end - duration;
+                            let start_percent = (start - {{ start }}) / ({{ end }} - {{ start }});
+                            let end_percent = (end - {{ start }}) / ({{ end }} - {{ start }});
 
-              bevyLink.href = `https://github.com/bevyengine/bevy/commit/${current_commit.id}`;
-              bevyLink.innerHTML = `Bevy - ${current_commit.id}`;
+                            let width = domain.signal("width");
+                            domain.signal("between_x", [start_percent * width, end_percent * width]).runAsync();
+                        }
+                        async function clear_interval() {
+                            domain.signal("between_x", {}).runAsync();
+                        }
 
-              const prLink = document.getElementById("pr-link");
+                        timestamps = [];
+                        highlightedCommit = window.location.hash.split("#")[1];
+                        async function share_interval(value) {
 
-              prLink.href = `https://github.com/bevyengine/bevy/pull/${current_commit.pr}`;
-              prLink.innerHTML = `#${current_commit.pr} ${current_commit.summary}`;
-            }
+                            var percent = [0, 1];
 
-            function updateNavigationLinks(commit) {
-                const prevLink = document.getElementById("previous-link");
-                const prevCount = document.getElementById("previous-count");
-                const nextLink = document.getElementById("next-link");
-                const nextCount = document.getElementById("next-count");
-                const i = getCommitIndex(commit);
-                var i_prev = i + 1;
-                while (!commits[i_prev].done && i_prev <= commits.length) {
-                    i_prev += 1;
-                }
-                var i_next = i - 1;
-                while (i_next >= 0 && !commits[i_next].done) {
-                    i_next -= 1;
-                }
-                if (i_next == 0 && !commits[i_next].done) {
-                    i_next -= 1;
-                }
+                            if (!isEmpty(value)) {
+                                let width = domain.signal("width");
+                                percent = value.map((x) => x / width);
+                                if (value[0] == value[1]) {
+                                    percent = [0, 1];
+                                }
+                            }
+                            timestamps = percent.map(
+                                (x) => x * ({{ end }} - {{ start }}) + {{ start }},
+                            );
+                            for (name in views) {
+                                let view = views[name];
+                                view.signal("between", timestamps);
+                            }
+                            last = 0;
+                            setTimeout(refreshViews, 100);
+                        }
 
-                if (i >= 0 && i_prev < commits.length) {
-                    prevLink.classList.remove("disabled");
-                    prevLink.href = "#" + commits[i_prev].id;
-                } else {
-                    prevLink.classList.add("disabled");
-                    prevLink.removeAttribute("href");
-                }
-                if (i_prev != i + 1) {
-                    prevCount.innerHTML = `${i_prev - i - 1} commits`;
-                } else {
-                    prevCount.innerHTML = "";
-                }
+                        async function toggleDomain(data) {
+                            fetch(data)
+                                .then((response) => response.json())
+                                .then((json) => {
+                                    domain
+                                        .change(
+                                            "DomainData",
+                                            vega.changeset().remove((_) => true),
+                                        )
+                                        .run();
+                                    domain.insert("DomainData", json).runAsync();
+                                });
+                        }
 
-                if (i_next >= 0) {
-                    nextLink.classList.remove("disabled");
-                    nextLink.href = "#" + commits[i_next].id;
-                } else {
-                    nextLink.classList.add("disabled");
-                    nextLink.removeAttribute("href");
-                }
-                if (i_next != i - 1) {
-                    nextCount.innerHTML = `${i - i_next - 1} commits`;
-                } else {
-                    nextCount.innerHTML = "";
-                }
-            }
+                        vegaEmbed(
+                            "#domain-controller",
+                            domain(),
+                            { mode: "vega-lite", actions: false, theme: "carbong100" },
+                        ).then((embedded) => {
+                            domain = embedded.view;
+                            fetch("data/compile-time-unix-x86_64-16.mean{{ cache_id }}.json")
+                                .then((response) => response.json())
+                                .then((json) =>
+                                    domain.insert("DomainData", json).runAsync(),
+                                );
 
-            function navigatePrevious() {
-                const prevLink = document.getElementById("previous-link");
-                if (prevLink.href) {
-                    window.location.hash = prevLink.href.split("#")[1];
-                }
-            }
+                            embedded.view.addSignalListener(
+                                "between_x",
+                                (_, value) => share_interval(value),
+                            );
+                        });
 
-            function navigateNext() {
-                const nextLink = document.getElementById("next-link");
-                if (nextLink.href) {
-                    window.location.hash = nextLink.href.split("#")[1];
-                }
-            }
+                        lazyLoading = (id) => {
+                            const elem = document.getElementById(id);
+                            const checkVisibility = () => {
+                                if (elem.getBoundingClientRect().top < window.innerHeight && elem.getBoundingClientRect().bottom > 0) {
+                                    window.removeEventListener('scroll', checkVisibility )
+                                    const to_remove = document.getElementById(`${id}-to-remove`);
+                                    to_remove.remove();
 
-            addEventListener("hashchange", (event) => {
-                highlightedCommit = event.newURL.split("#")[1];
-                updateBevyLink(highlightedCommit);
-                updateNavigationLinks(highlightedCommit);
-                for (view in views) {
-                    views[view].signal("highlight", highlightedCommit).runAsync();
-                }
-            })
+                                    vegaEmbed(
+                                        "#" + id + " > #graph",
+                                        crateCompilationTime(
+                                            "data/" + id + "{{ cache_id }}.json",
+                                            id,
+                                        ),
+                                        { mode: "vega-lite", actions: false, theme: "carbong90" },
+                                    ).then((embedded) => {
+                                        views[id] = embedded.view;
+                                        if (timestamps.length > 0) {
+                                            embedded.view.signal("between", timestamps).runAsync();
+                                        }
+                                        if (highlightedCommit !== undefined) {
+                                            embedded.view.signal("highlight", highlightedCommit).runAsync();
+                                        }
+                                    });
 
-            if (highlightedCommit !== undefined) {
-                updateBevyLink(highlightedCommit);
-                updateNavigationLinks(highlightedCommit);
-            }
+
+                                }
+                            }
+                            window.addEventListener('scroll', checkVisibility);
+                            checkVisibility();
+                        }
+
+                        {% for stress_test in stress_tests -%}
+                        lazyLoading("{{ stress_test }}");
+                        {% endfor %}
+
+                        function getCommitIndex(commit) {
+                            for (var i = 0; i < commits.length; i++) {
+                              if (commits[i].id === commit) {
+                                return i;
+                              }
+                            }
+                            return -1;
+                        }
+
+                        function updateBevyLink(commit) {
+                            let i = getCommitIndex(commit);
+                            updatebevyLinkByHistory(i)
+                        }
+
+                        function updatebevyLinkByHistory(i) {
+                          let current_commit = commits[i];
+
+                          const bevyLink = document.getElementById("bevy-link");
+
+                          bevyLink.href = `https://github.com/bevyengine/bevy/commit/${current_commit.id}`;
+                          bevyLink.innerHTML = `Bevy - ${current_commit.id}`;
+
+                          const prLink = document.getElementById("pr-link");
+
+                          prLink.href = `https://github.com/bevyengine/bevy/pull/${current_commit.pr}`;
+                          prLink.innerHTML = `#${current_commit.pr} ${current_commit.summary}`;
+                        }
+
+                        function updateNavigationLinks(commit) {
+                            const prevLink = document.getElementById("previous-link");
+                            const prevCount = document.getElementById("previous-count");
+                            const nextLink = document.getElementById("next-link");
+                            const nextCount = document.getElementById("next-count");
+                            const i = getCommitIndex(commit);
+                            var i_prev = i + 1;
+                            while (!commits[i_prev].done && i_prev <= commits.length) {
+                                i_prev += 1;
+                            }
+                            var i_next = i - 1;
+                            while (i_next >= 0 && !commits[i_next].done) {
+                                i_next -= 1;
+                            }
+                            if (i_next == 0 && !commits[i_next].done) {
+                                i_next -= 1;
+                            }
+
+                            if (i >= 0 && i_prev < commits.length) {
+                                prevLink.classList.remove("disabled");
+                                prevLink.href = "#" + commits[i_prev].id;
+                            } else {
+                                prevLink.classList.add("disabled");
+                                prevLink.removeAttribute("href");
+                            }
+                            if (i_prev != i + 1) {
+                                prevCount.innerHTML = `${i_prev - i - 1} commits`;
+                            } else {
+                                prevCount.innerHTML = "";
+                            }
+
+                            if (i_next >= 0) {
+                                nextLink.classList.remove("disabled");
+                                nextLink.href = "#" + commits[i_next].id;
+                            } else {
+                                nextLink.classList.add("disabled");
+                                nextLink.removeAttribute("href");
+                            }
+                            if (i_next != i - 1) {
+                                nextCount.innerHTML = `${i - i_next - 1} commits`;
+                            } else {
+                                nextCount.innerHTML = "";
+                            }
+                        }
+
+                        function navigatePrevious() {
+                            const prevLink = document.getElementById("previous-link");
+                            if (prevLink.href) {
+                                window.location.hash = prevLink.href.split("#")[1];
+                            }
+                        }
+
+                        function navigateNext() {
+                            const nextLink = document.getElementById("next-link");
+                            if (nextLink.href) {
+                                window.location.hash = nextLink.href.split("#")[1];
+                            }
+                        }
+
+                        addEventListener("hashchange", (event) => {
+                            highlightedCommit = event.newURL.split("#")[1];
+                            updateBevyLink(highlightedCommit);
+                            updateNavigationLinks(highlightedCommit);
+                            for (view in views) {
+                                views[view].signal("highlight", highlightedCommit).runAsync();
+                            }
+                        })
+
+                        if (highlightedCommit !== undefined) {
+                            updateBevyLink(highlightedCommit);
+                            updateNavigationLinks(highlightedCommit);
+                        }
         </script>
     </body>
 </html>

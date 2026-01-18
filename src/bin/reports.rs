@@ -235,6 +235,7 @@ fn setup_runtime(kind: &str, stats: &[Stats], cache_id: &str) -> Vec<(String, f6
         timestamp: u128,
         commit: String,
         frame_time: u64,
+        frame_time_mangohud: Option<u64>,
         cpu: u64,
         gpu: u64,
     }
@@ -285,6 +286,13 @@ fn setup_runtime(kind: &str, stats: &[Stats], cache_id: &str) -> Vec<(String, f6
                                     .cloned()
                                     .unwrap() as f64))
                                 as u64,
+                            frame_time_mangohud: stat
+                                .metrics
+                                .get(&format!(
+                                    "{kind}.{}.{}.frame_time.mean",
+                                    stress_test.0, stress_test.1
+                                ))
+                                .cloned(),
                             cpu: stat
                                 .metrics
                                 .get(&format!(
