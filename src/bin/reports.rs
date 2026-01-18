@@ -88,6 +88,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut runtime = stress_tests;
     runtime.extend(large_scenes);
 
+    runtime.sort_by(|a, b| a.0.cmp(&b.0));
     let stress_tests_alpha = runtime
         .iter()
         .map(|(name, _)| name.clone())
