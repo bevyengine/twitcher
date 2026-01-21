@@ -135,6 +135,12 @@
             .data-table td {
                 background-color: #3a3a3a;
             }
+
+            .queue-commit {
+                font-size: 0.8rem;
+                font-style: italic;
+                color: gray;
+            }
         </style>
     </head>
 
@@ -264,7 +270,14 @@
                         {% elif commit.status == "Queued" -%}
                         <td>Queued</td>
                         {% else -%}
-                        <td></td>
+                        <td>
+                            <a
+                                class="queue-commit"
+                                href="https://github.com/bevyengine/twitcher/new/queue?filename={{ commit.id }}"
+                            >
+                                Queue this commit
+                            </a>
+                        </td>
                         {% endif -%}
                     </tr>
                     {% endfor -%}
