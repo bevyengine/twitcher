@@ -290,6 +290,7 @@ impl Commands {
                 if recur {
                     Commands::iter()
                         .filter(|c| !matches!(c, Commands::LlvmLines))
+                        .filter(|c| !matches!(c, Commands::CrateCompileTime))
                         .flat_map(|command| command.to_metrics(false))
                         .collect()
                 } else {
