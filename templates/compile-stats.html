@@ -238,17 +238,6 @@
                     Use as Domain
                 </button>
             </div>
-            {% for crate in crate_names -%}
-            <div id="{{ crate }}" class="detailedgraph">
-                <div id="graph" class="graph"></div>
-                <button
-                    type="button"
-                    onclick="toggleDomain('data/crate-compile-time-unix-x86_64-16.{{ crate }}.mean{{ cache_id }}.json')"
-                >
-                    Use as Domain
-                </button>
-            </div>
-            {% endfor %}
         </div>
 
         <script>
@@ -486,77 +475,6 @@
                     config: { customFormatTypes: true }
                 };
             };
-            crateCompilationTime = (file, title) => {
-                return {
-                    $schema: "https://vega.github.io/schema/vega-lite/v6.json",
-                    data: {
-                        url: file,
-                    },
-                    width: "container",
-                    height: "container",
-                    transform: [
-                        {
-                            calculate:
-                              "'compile-stats.html#' + datum.commit",
-                            as: "url",
-                        },
-                    ],
-                    title: title,
-                    mark: {
-                        type: "circle",
-                    },
-                    params: [
-                      { name: "between", value: [{{ onemonthago }}, {{ end }}] },
-                      { name: "has_zero", value: false },
-                      { name: "highlight", value: "" },
-                    ],
-
-                    encoding: {
-                        x: {
-                            title: "",
-                            field: "timestamp",
-                            type: "temporal",
-                            scale: {domain: {selection: "between"}},
-                        },
-                        y: {
-                            field: "value",
-                            type: "quantitative",
-                            scale: {
-                                zero: { expr: "has_zero" },
-                            },
-                            axis: {
-                                formatType: "duration",
-                            },
-                            title: "Duration",
-                        },
-                        tooltip: [
-                            {
-                                field: "value",
-                                formatType: "duration",
-                                title: "Duration",
-                            },
-                            { field: "commit" },
-                            {
-                                field: "timestamp",
-                                title: "Time",
-                                type: "temporal",
-                                format: "%Y-%m-%d %H:%M:%S",
-                            }
-                        ],
-                        href: { field: "url", type: "nominal" },
-                        color: {
-                            condition: [
-                                {
-                                    test: { field: "commit", equal: {expr: "highlight"} },
-                                    value: "rgb(200, 20, 0)",
-                                },
-                            ],
-                            value: "rgb(76, 120, 168)",
-                        },
-                    },
-                    config: { customFormatTypes: true }
-                };
-            };
             domain = () => {
                 return {
                     $schema: "https://vega.github.io/schema/vega-lite/v6.json",
@@ -755,41 +673,6 @@
                     embedded.view.signal("highlight", highlightedCommit).runAsync();
                 }
             });
-
-
-            lazyLoading = (id) => {
-                const elem = document.getElementById(id);
-                const checkVisibility = () => {
-                  if (elem.getBoundingClientRect().top < window.innerHeight && elem.getBoundingClientRect().bottom > 0) {
-                        window.removeEventListener('scroll', checkVisibility )
-
-                        vegaEmbed(
-                            "#" + id + " > #graph",
-                            crateCompilationTime(
-                                "data/crate-compile-time-unix-x86_64-16." + id + ".mean{{ cache_id }}.json",
-                                "Crate Mean Compilation Time - " + id,
-                            ),
-                            { mode: "vega-lite", actions: false, theme: "carbong90" },
-                        ).then((embedded) => {
-                            views[id] = embedded.view;
-                            if (timestamps.length > 0) {
-                                embedded.view.signal("between", timestamps).runAsync();
-                            }
-                            if (highlightedCommit !== undefined) {
-                                embedded.view.signal("highlight", highlightedCommit).runAsync();
-                            }
-                        });
-
-
-                    }
-                }
-                window.addEventListener('scroll', checkVisibility);
-                checkVisibility();
-            }
-
-            {% for crate in crate_names -%}
-            lazyLoading("{{ crate }}");
-            {% endfor %}
 
             function getCommitIndex(commit) {
                 for (var i = 0; i < commits.length; i++) {
