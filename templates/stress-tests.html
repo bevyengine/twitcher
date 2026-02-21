@@ -293,31 +293,7 @@
                                 ],
 
                                 layer: [
-                                    {layer:[{
-                                        mark: {
-                                            type: "circle",
-                                            color: "red",
-                                        },
-                                        encoding: {
-                                            x: {
-                                                title: "",
-                                                field: "timestamp",
-                                                type: "temporal",
-                                                scale: {domain: {selection: "between"}},
-                                            },
-                                            y: {
-                                                field: "frame_time_mangohud",
-                                                type: "quantitative",
-                                                scale: {
-                                                    zero: { expr: "has_zero" },
-                                                },
-                                                axis: {
-                                                    formatType: "duration",
-                                                },
-                                                title: "Frame Time",
-                                            },
-                                        }
-                                    },
+                                    {layer:[
                                     {
                                         mark: {
                                             type: "circle",
@@ -345,11 +321,6 @@
                                                     field: "frame_time",
                                                     formatType: "duration",
                                                     title: "Duration",
-                                                },
-                                                {
-                                                    field: "frame_time_mangohud",
-                                                    formatType: "duration",
-                                                    title: "Frame Time MangoHud",
                                                 },
                                                 {
                                                     field: "cpu",

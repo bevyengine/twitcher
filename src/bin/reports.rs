@@ -257,7 +257,7 @@ fn setup_runtime(kind: &str, stats: &[Stats], cache_id: &str) -> Vec<(String, f6
     let with_z_scores = stress_tests
         .into_iter()
         .flat_map(|stress_test| {
-            let values = stats
+            let mut values = stats
                 .iter()
                 .filter(|stat| {
                     (chrono::Utc::now()
@@ -316,6 +316,20 @@ fn setup_runtime(kind: &str, stats: &[Stats], cache_id: &str) -> Vec<(String, f6
 
             if values.is_empty() {
                 return None;
+            }
+
+            // frame time from mangohud is available for all commits, use it instead
+            if values.iter().all(|v| v.frame_time_mangohud.is_some()) {
+                values.iter_mut().for_each(|v| {
+                    v.frame_time = v.frame_time_mangohud.unwrap();
+                    v.frame_time_mangohud = None;
+                });
+            } else {
+                // TODO: once this log doesn't happen, cleanup frame time computation
+                println!(
+                    "Using old frame time for {} {}",
+                    stress_test.0, stress_test.1
+                );
             }
 
             serde_json::to_writer(
