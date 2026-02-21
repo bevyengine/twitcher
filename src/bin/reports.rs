@@ -88,6 +88,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut runtime = stress_tests;
     runtime.extend(large_scenes);
 
+    runtime.sort_by(|a, b| a.0.cmp(&b.0));
     let stress_tests_alpha = runtime
         .iter()
         .map(|(name, _)| name.clone())
@@ -235,6 +236,7 @@ fn setup_runtime(kind: &str, stats: &[Stats], cache_id: &str) -> Vec<(String, f6
         timestamp: u128,
         commit: String,
         frame_time: u64,
+        frame_time_mangohud: Option<u64>,
         cpu: u64,
         gpu: u64,
     }
@@ -255,7 +257,7 @@ fn setup_runtime(kind: &str, stats: &[Stats], cache_id: &str) -> Vec<(String, f6
     let with_z_scores = stress_tests
         .into_iter()
         .flat_map(|stress_test| {
-            let values = stats
+            let mut values = stats
                 .iter()
                 .filter(|stat| {
                     (chrono::Utc::now()
@@ -285,6 +287,13 @@ fn setup_runtime(kind: &str, stats: &[Stats], cache_id: &str) -> Vec<(String, f6
                                     .cloned()
                                     .unwrap() as f64))
                                 as u64,
+                            frame_time_mangohud: stat
+                                .metrics
+                                .get(&format!(
+                                    "{kind}.{}.{}.frame_time.mean",
+                                    stress_test.0, stress_test.1
+                                ))
+                                .cloned(),
                             cpu: stat
                                 .metrics
                                 .get(&format!(
@@ -309,10 +318,25 @@ fn setup_runtime(kind: &str, stats: &[Stats], cache_id: &str) -> Vec<(String, f6
                 return None;
             }
 
+            // frame time from mangohud is available for all commits, use it instead
+            if values.iter().all(|v| v.frame_time_mangohud.is_some()) {
+                values.iter_mut().for_each(|v| {
+                    v.frame_time = v.frame_time_mangohud.unwrap();
+                    v.frame_time_mangohud = None;
+                });
+            } else {
+                // TODO: once this log doesn't happen, cleanup frame time computation
+                println!(
+                    "Using old frame time for {} {}",
+                    stress_test.0, stress_test.1
+                );
+            }
+
             serde_json::to_writer(
                 std::fs::File::create(format!(
-                    "data/{}_{}{cache_id}.json",
-                    stress_test.0, stress_test.1
+                    "data/{}{}{cache_id}.json",
+                    stress_test.0,
+                    stress_test.1.replace("params", ""),
                 ))
                 .unwrap(),
                 &values,
@@ -349,7 +373,7 @@ fn setup_runtime(kind: &str, stats: &[Stats], cache_id: &str) -> Vec<(String, f6
 
     with_z_scores
         .into_iter()
-        .map(|(name, params, z_score)| (format!("{name}_{params}"), z_score))
+        .map(|(name, params, z_score)| (format!("{name}{}", params.replace("params", "")), z_score))
         .collect()
 }
 
