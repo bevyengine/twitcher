@@ -39,12 +39,6 @@ jobs:
           path: "bevy"
           fetch-depth: 500
       - uses: Swatinem/rust-cache@v2
-      - name: Build Graphs
-        run: |
-          cargo run --release --bin graphs
-      - name: Build HTML for graphs
-        run: |
-          cargo run --release --bin raw-graphs
       - name: Build Reports
         run: |
           cargo run --release --bin reports -- ${{ github.sha }}

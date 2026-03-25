@@ -1,0 +1,919 @@
+<!doctype html>
+<html>
+    <head>
+        <title>Bevy Metrics - Compare Commits</title>
+        <style>
+            body {
+                color: #e0e0e0;
+            }
+
+            a {
+                color: white;
+            }
+
+            #settings {
+                position: sticky;
+                top: 0;
+                background: rgb(22, 22, 22);
+                color: white;
+                padding: 10px;
+                border: 1px solid #ccc;
+                z-index: 100;
+            }
+
+            .commit-selectors {
+                display: flex;
+                gap: 2rem;
+                justify-content: center;
+                margin: 1.5rem 0;
+                flex-wrap: wrap;
+            }
+
+            .commit-selector {
+                display: flex;
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+
+            .commit-selector label {
+                font-weight: 500;
+                font-size: 0.9rem;
+            }
+
+            .commit-selector select {
+                background-color: #3a3a3a;
+                color: #e0e0e0;
+                border: 1px solid #6a6a6a;
+                padding: 6px 10px;
+                font-family: "Fira Sans", monospace;
+                font-size: 0.85rem;
+                border-radius: 4px;
+                max-width: 500px;
+            }
+
+            #compare-btn {
+                background-color: #4a6e91;
+                color: white;
+                border: 2px solid #6a8fb3;
+                padding: 8px 20px;
+                border-radius: 6px;
+                font-family: "Fira Sans", sans-serif;
+                font-size: 1rem;
+                font-weight: 500;
+                cursor: pointer;
+                transition: background-color 100ms;
+                align-self: flex-end;
+            }
+
+            #compare-btn:hover {
+                background-color: #456687;
+            }
+
+            #comparison-table {
+                margin: 1rem auto;
+                max-width: 95%;
+                overflow-x: auto;
+            }
+
+            table {
+                border-collapse: collapse;
+                width: 100%;
+                font-size: 0.85rem;
+            }
+
+            th,
+            td {
+                padding: 6px 12px;
+                border: 1px solid #4a4a4a;
+                text-align: right;
+            }
+
+            th {
+                background-color: #3a3a3a;
+                color: #fff;
+                font-weight: 500;
+                position: sticky;
+                top: 0;
+            }
+
+            td:first-child,
+            th:first-child {
+                text-align: left;
+                max-width: 400px;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+            }
+
+            tr.hidden {
+                display: none;
+            }
+
+            tr:nth-child(even of :not(.hidden)) {
+                background-color: #2e2e2e;
+            }
+
+            tr:nth-child(odd of :not(.hidden)) {
+                background-color: #343434;
+            }
+
+            .better {
+                color: #4caf50;
+            }
+
+            .worse {
+                color: #f44336;
+            }
+
+            .neutral {
+                color: #9e9e9e;
+            }
+
+            .metric-category {
+                background-color: #4a4a4a !important;
+                font-weight: 700;
+                font-size: 0.95rem;
+            }
+
+            .metric-category td {
+                text-align: left;
+                padding: 8px 12px;
+            }
+
+            #loading {
+                text-align: center;
+                padding: 2rem;
+                color: #9e9e9e;
+                display: none;
+            }
+
+            .filter-container {
+                display: flex;
+                justify-content: center;
+                gap: 1rem;
+                margin: 0.5rem 0;
+                flex-wrap: wrap;
+            }
+
+            .filter-btn {
+                background-color: #3a3a3a;
+                color: #e0e0e0;
+                border: 1px solid #6a6a6a;
+                padding: 4px 12px;
+                border-radius: 4px;
+                cursor: pointer;
+                font-family: "Fira Sans", sans-serif;
+                font-size: 0.85rem;
+            }
+
+            .filter-btn.active {
+                background-color: #4a6e91;
+                border-color: #6a8fb3;
+            }
+
+            .commit-search {
+                position: relative;
+            }
+
+            .commit-search input {
+                background-color: #3a3a3a;
+                color: #e0e0e0;
+                border: 1px solid #6a6a6a;
+                padding: 6px 10px;
+                font-family: "Fira Sans", monospace;
+                font-size: 0.85rem;
+                border-radius: 0;
+                width: 450px;
+            }
+
+            .commit-search input.resolved {
+                border-color: #4caf50;
+            }
+
+            .commit-suggestions {
+                position: absolute;
+                top: 100%;
+                left: 0;
+                right: 0;
+                background-color: #2e2e2e;
+                border: 1px solid #6a6a6a;
+                border-top: none;
+                border-radius: 0 0 4px 4px;
+                max-height: 250px;
+                overflow-y: auto;
+                z-index: 200;
+                display: none;
+            }
+
+            .commit-suggestions div {
+                padding: 6px 10px;
+                cursor: pointer;
+                font-size: 0.82rem;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+
+            .commit-suggestions div:hover,
+            .commit-suggestions div.active {
+                background-color: #4a6e91;
+            }
+
+            .commit-suggestions .pr-num {
+                color: #9e9e9e;
+            }
+
+            .commit-nav {
+                display: flex;
+                align-items: stretch;
+            }
+
+            .commit-nav-btn {
+                background-color: #3a3a3a;
+                color: #e0e0e0;
+                border: 1px solid #6a6a6a;
+                padding: 0 8px;
+                cursor: pointer;
+                font-size: 1rem;
+                font-family: "Fira Sans", sans-serif;
+                transition: background-color 100ms;
+            }
+
+            .commit-nav-btn:hover:not(:disabled) {
+                background-color: #4a6e91;
+            }
+
+            .commit-nav-btn:disabled {
+                color: #555;
+                cursor: default;
+            }
+
+            .commit-nav-btn:first-child {
+                border-radius: 4px 0 0 4px;
+                border-right: none;
+            }
+
+            .commit-nav-btn:last-child {
+                border-radius: 0 4px 4px 0;
+                border-left: none;
+            }
+        </style>
+    </head>
+    <body style="background-color: rgb(38, 38, 38)">
+        <div id="settings" style="display: flex; flex-direction: column">
+            <div>
+                <a href="index.html">Home</a>
+                -
+                <a href="compile-stats.html">Compilation Stats</a>
+                -
+                <a href="stress-tests_z.html">Stress Tests</a>
+                -
+                <a href="benchmarks_z.html">Benchmarks</a>
+                -
+                <a href="compare.html" style="color: red">Compare</a>
+            </div>
+        </div>
+
+        <div class="commit-selectors">
+            <div class="commit-selector">
+                <label>Base Commit</label>
+                <div class="commit-nav">
+                    <button
+                        class="commit-nav-btn"
+                        id="base-prev"
+                        disabled
+                        onclick="navigateCommit('base', 1)"
+                    >
+                        &lt;
+                    </button>
+                    <div class="commit-search">
+                        <input
+                            type="text"
+                            id="base-commit"
+                            placeholder="Search by commit, PR #, or title..."
+                            autocomplete="off"
+                        />
+                        <input type="hidden" id="base-commit-id" />
+                        <div
+                            class="commit-suggestions"
+                            id="base-commit-suggestions"
+                        ></div>
+                    </div>
+                    <button
+                        class="commit-nav-btn"
+                        id="base-next"
+                        disabled
+                        onclick="navigateCommit('base', -1)"
+                    >
+                        &gt;
+                    </button>
+                </div>
+            </div>
+            <div class="commit-selector">
+                <label>Other Commit</label>
+                <div class="commit-nav">
+                    <button
+                        class="commit-nav-btn"
+                        id="other-prev"
+                        disabled
+                        onclick="navigateCommit('other', 1)"
+                    >
+                        &lt;
+                    </button>
+                    <div class="commit-search">
+                        <input
+                            type="text"
+                            id="other-commit"
+                            placeholder="Search by commit, PR #, or title..."
+                            autocomplete="off"
+                        />
+                        <input type="hidden" id="other-commit-id" />
+                        <div
+                            class="commit-suggestions"
+                            id="other-commit-suggestions"
+                        ></div>
+                    </div>
+                    <button
+                        class="commit-nav-btn"
+                        id="other-next"
+                        disabled
+                        onclick="navigateCommit('other', -1)"
+                    >
+                        &gt;
+                    </button>
+                </div>
+            </div>
+            <button id="compare-btn" onclick="compare()">Compare</button>
+        </div>
+
+        <div class="filter-container" id="filters" style="display: none">
+            <button class="filter-btn active" onclick="filterMetrics('all')">
+                All
+            </button>
+            <button class="filter-btn" onclick="filterMetrics('stress-test')">
+                Stress Tests
+            </button>
+            <button class="filter-btn" onclick="filterMetrics('benchmarks')">
+                Benchmarks
+            </button>
+            <button class="filter-btn" onclick="filterMetrics('compile-time')">
+                Compile Time
+            </button>
+            <button class="filter-btn" onclick="filterMetrics('size')">
+                Binary Size
+            </button>
+            <label
+                style="
+                    display: flex;
+                    align-items: center;
+                    gap: 5px;
+                    margin-left: 1rem;
+                    cursor: pointer;
+                "
+            >
+                <input
+                    type="checkbox"
+                    id="hide-insignificant"
+                    checked
+                    onchange="applyFilters()"
+                />
+                Hide insignificant
+            </label>
+            <input
+                type="text"
+                id="name-filter"
+                placeholder="Filter by name..."
+                oninput="applyFilters()"
+                style="
+                    background-color: #3a3a3a;
+                    color: #e0e0e0;
+                    border: 1px solid #6a6a6a;
+                    padding: 4px 10px;
+                    border-radius: 4px;
+                    font-family: &quot;Fira Sans&quot;, sans-serif;
+                    font-size: 0.85rem;
+                    margin-left: 1rem;
+                    width: 200px;
+                "
+            />
+            <select
+                id="sort-order"
+                onchange="sortAndRebuild()"
+                style="
+                    background-color: #3a3a3a;
+                    color: #e0e0e0;
+                    border: 1px solid #6a6a6a;
+                    padding: 4px 10px;
+                    border-radius: 4px;
+                    font-family: &quot;Fira Sans&quot;, sans-serif;
+                    font-size: 0.85rem;
+                    margin-left: 1rem;
+                "
+            >
+                <option value="name">Sort by name</option>
+                <option value="negative">
+                    Sort by change (negative first)
+                </option>
+                <option value="positive">
+                    Sort by change (positive first)
+                </option>
+            </select>
+        </div>
+
+        <div id="loading">Loading comparison data...</div>
+        <div id="comparison-table"></div>
+
+        <script>
+            const commits = [
+                {% for commit in commits -%}
+                {% if commit.done -%}
+                {id: "{{ commit.id }}", summary: "{{ commit.summary }}", pr: {{ commit.pr }}, timestamp: {{ commit.timestamp }}},
+                {% endif -%}
+                {% endfor -%}
+            ];
+
+            let compareCache = {};
+            let currentFilter = "all";
+            let lastCompareRows = [];
+            let lastCompareBaseId = "";
+            let lastCompareOtherId = "";
+
+            function searchCommits(query) {
+                if (!query) return commits.slice(0, 15);
+                const q = query.toLowerCase();
+                return commits.filter(c =>
+                    c.id.toLowerCase().startsWith(q) ||
+                    c.pr.toString() === q ||
+                    ("#" + c.pr.toString()) === q ||
+                    c.summary.toLowerCase().includes(q)
+                ).slice(0, 15);
+            }
+
+            function commitLabel(c) {
+                return `${c.id.slice(0, 8)} - ${c.summary}`;
+            }
+
+            function commitLabelHtml(c) {
+                const pr = c.pr ? ` <span class="pr-num">#${c.pr}</span>` : "";
+                return `${c.id.slice(0, 8)} - ${c.summary}${pr}`;
+            }
+
+            function setupCommitSearch(prefix) {
+                const inputId = prefix + "-commit";
+                const hiddenId = prefix + "-commit-id";
+                const suggestionsId = prefix + "-commit-suggestions";
+                const input = document.getElementById(inputId);
+                const hidden = document.getElementById(hiddenId);
+                const suggestions = document.getElementById(suggestionsId);
+                const prevBtn = document.getElementById(prefix + "-prev");
+                const nextBtn = document.getElementById(prefix + "-next");
+                let activeIdx = -1;
+
+                function updateNavButtons() {
+                    const id = hidden.value;
+                    if (!id) {
+                        prevBtn.disabled = true;
+                        nextBtn.disabled = true;
+                        return;
+                    }
+                    const idx = commits.findIndex(c => c.id === id);
+                    prevBtn.disabled = idx < 0 || idx >= commits.length - 1;
+                    nextBtn.disabled = idx <= 0;
+                }
+
+                function showSuggestions() {
+                    const results = searchCommits(input.value.trim());
+                    activeIdx = -1;
+                    if (results.length === 0) {
+                        suggestions.style.display = "none";
+                        return;
+                    }
+                    suggestions.innerHTML = results.map((c, i) =>
+                        `<div data-id="${c.id}" data-idx="${i}">${commitLabelHtml(c)}</div>`
+                    ).join("");
+                    suggestions.style.display = "block";
+
+                    suggestions.querySelectorAll("div").forEach(div => {
+                        div.addEventListener("mousedown", (e) => {
+                            e.preventDefault();
+                            selectCommit(div.dataset.id);
+                        });
+                    });
+                }
+
+                function selectCommit(id) {
+                    const c = commits.find(c => c.id === id);
+                    if (c) {
+                        input.value = commitLabel(c);
+                        hidden.value = c.id;
+                        input.classList.add("resolved");
+                        updateNavButtons();
+                    }
+                    suggestions.style.display = "none";
+                }
+
+                function updateActive() {
+                    suggestions.querySelectorAll("div").forEach((div, i) => {
+                        div.classList.toggle("active", i === activeIdx);
+                    });
+                }
+
+                input.addEventListener("input", () => {
+                    hidden.value = "";
+                    input.classList.remove("resolved");
+                    updateNavButtons();
+                    showSuggestions();
+                });
+
+                input.addEventListener("focus", () => {
+                    showSuggestions();
+                });
+
+                input.addEventListener("blur", () => {
+                    setTimeout(() => { suggestions.style.display = "none"; }, 150);
+                });
+
+                input.addEventListener("keydown", (e) => {
+                    const items = suggestions.querySelectorAll("div");
+                    if (e.key === "ArrowDown") {
+                        e.preventDefault();
+                        activeIdx = Math.min(activeIdx + 1, items.length - 1);
+                        updateActive();
+                    } else if (e.key === "ArrowUp") {
+                        e.preventDefault();
+                        activeIdx = Math.max(activeIdx - 1, 0);
+                        updateActive();
+                    } else if (e.key === "Enter") {
+                        e.preventDefault();
+                        if (activeIdx >= 0 && items[activeIdx]) {
+                            selectCommit(items[activeIdx].dataset.id);
+                        } else if (items.length > 0) {
+                            selectCommit(items[0].dataset.id);
+                        }
+                    } else if (e.key === "Escape") {
+                        suggestions.style.display = "none";
+                    }
+                });
+
+                return { selectCommit };
+            }
+
+            const baseSearch = setupCommitSearch("base");
+            const otherSearch = setupCommitSearch("other");
+
+            function navigateCommit(prefix, direction) {
+                const hidden = document.getElementById(prefix + "-commit-id");
+                const id = hidden.value;
+                if (!id) return;
+                const idx = commits.findIndex(c => c.id === id);
+                const newIdx = idx + direction;
+                if (newIdx < 0 || newIdx >= commits.length) return;
+                const search = prefix === "base" ? baseSearch : otherSearch;
+                search.selectCommit(commits[newIdx].id);
+            }
+
+            function duration_us(us) {
+                if (us === 0) return "0";
+                const time = {
+                    h: Math.floor(us / 3600000000) % 24,
+                    m: Math.floor(us / 60000000) % 60,
+                    s: Math.floor(us / 1000000) % 60,
+                    ms: Math.floor(us / 1000) % 1000,
+                    us: Math.floor(us) % 1000,
+                };
+                return Object.entries(time)
+                    .filter((val) => val[1] !== 0)
+                    .map(([key, val]) => `${val}${key}`)
+                    .join(" ");
+            }
+            function duration_ps(ps) {
+                if (ps === 0) return "0";
+                const time = {
+                    s: Math.floor(ps / 1000000000000) % 60,
+                    ms: Math.floor(ps / 1000000000) % 1000,
+                    us: Math.floor(ps / 1000000) % 1000,
+                    ns: Math.floor(ps / 1000) % 1000,
+                    ps: Math.floor(ps) % 1000,
+                };
+                return Object.entries(time)
+                    .filter((val) => val[1] !== 0)
+                    .map(([key, val]) => `${val}${key}`)
+                    .join(" ");
+            }
+
+            function formatValue(key, value) {
+                if (key.endsWith(".size")) {
+                    if (value > 1024 * 1024) {
+                        return `${(value / (1024 * 1024)).toFixed(2)} MB`;
+                    }
+                    return `${(value / 1024).toFixed(2)} KB`;
+                }
+                if (key.includes("cpu_usage") || key.includes("gpu_usage") || key.includes("gpu_mem")) {
+                    return `${(value / 1000).toFixed(1)}%`;
+                }
+                if (key.includes("benchmarks.")) {
+                    return duration_ps(value);
+                }
+                if (key.includes("compile-time") || key.includes("benchmarks.") || key.includes("frame_time") || key.includes(".duration") || key.includes("crate-compile-time")) {
+                    return duration_us(value);
+                }
+                return value.toLocaleString();
+            }
+
+            function getCategory(key) {
+                if (key.startsWith("large-scene-fps.")) return "Large Scenes";
+                if (key.startsWith("stress-test-fps.")) return "Stress Tests";
+                if (key.startsWith("benchmarks.")) return "Benchmarks";
+                if (key.startsWith("compile-time") || key.startsWith("crate-compile-time")) return "Compile Time";
+                if (key.endsWith(".size")) return "Binary Size";
+                return "Other";
+            }
+
+            function getCategoryFilter(key) {
+                if (key.startsWith("large-scene-fps.")) return "stress-test";
+                if (key.startsWith("stress-test-fps.")) return "stress-test";
+                if (key.startsWith("benchmarks.")) return "benchmarks";
+                if (key.startsWith("compile-time") || key.startsWith("crate-compile-time")) return "compile-time";
+                if (key.endsWith(".size")) return "size";
+                return "other";
+            }
+
+            async function fetchCommitData(commitId) {
+                if (compareCache[commitId]) {
+                    return compareCache[commitId];
+                }
+                const response = await fetch(`data/compare/${commitId}{{ cache_id }}.json`);
+                const metrics = await response.json();
+                compareCache[commitId] = metrics;
+                return metrics;
+            }
+
+            // Get indices of up to `count` commits around the given commit (excluding it)
+            // Get the `count` commits before (older than) the given commit
+            function getPrecedingCommitIds(commitId, count) {
+                const idx = commits.findIndex(c => c.id === commitId);
+                if (idx < 0) return [];
+                // Commits are most-recent-first, so older = higher index
+                const ids = [];
+                for (let i = idx + 1; i < Math.min(idx + 1 + count, commits.length); i++) {
+                    ids.push(commits[i].id);
+                }
+                return ids;
+            }
+
+            // Compute significance threshold per metric using IQR fencing on surrounding commits
+            async function computeSignificanceThresholds(baseId, baseMetrics, surroundingIds) {
+                // Fetch all surrounding commit metrics (in parallel, ignore failures)
+                const results = await Promise.all(
+                    surroundingIds.map(id => fetchCommitData(id).catch(() => null))
+                );
+                const surroundingMetrics = results.filter(m => m !== null);
+
+                if (surroundingMetrics.length < 3) return {};
+
+                // For each metric, compute relative change % of each surrounding commit vs the base,
+                // then compute IQR on those to get a significance threshold
+                const thresholds = {};
+                const allKeys = Object.keys(baseMetrics);
+
+                allKeys.forEach(key => {
+                    const baseVal = baseMetrics[key];
+                    if (baseVal === undefined || baseVal === 0) return;
+
+                    const changes = surroundingMetrics
+                        .filter(m => m[key] !== undefined && m[key] !== 0)
+                        .map(m => Math.abs(((m[key] / baseVal) - 1) * 100))
+                        .sort((a, b) => a - b);
+
+                    if (changes.length < 3) return;
+
+                    const q1 = changes[Math.floor(changes.length * 0.25)];
+                    const q3 = changes[Math.floor(changes.length * 0.75)];
+                    const iqr = q3 - q1;
+                    thresholds[key] = q3 + iqr * 3;
+                });
+
+                return thresholds;
+            }
+
+            async function compare() {
+                const baseId = document.getElementById("base-commit-id").value;
+                const otherId = document.getElementById("other-commit-id").value;
+
+                if (!baseId || !otherId) return;
+
+                document.getElementById("loading").style.display = "block";
+                document.getElementById("comparison-table").innerHTML = "";
+
+                const url = new URL(window.location);
+                url.searchParams.set("base", baseId.slice(0, 8));
+                url.searchParams.set("other", otherId.slice(0, 8));
+                window.history.replaceState({}, "", url);
+
+                let baseMetrics, otherMetrics;
+                try {
+                    baseMetrics = await fetchCommitData(baseId);
+                    otherMetrics = await fetchCommitData(otherId);
+                } catch (err) {
+                    document.getElementById("loading").textContent = "Failed to load comparison data.";
+                    console.error(err);
+                    return;
+                }
+
+                if (!baseMetrics || !otherMetrics) {
+                    document.getElementById("loading").textContent = "Metrics not found for selected commits.";
+                    return;
+                }
+
+                // Fetch surrounding commits and compute significance thresholds
+                const precedingIds = getPrecedingCommitIds(baseId, 30);
+                const thresholds = await computeSignificanceThresholds(baseId, baseMetrics, precedingIds);
+
+                document.getElementById("loading").style.display = "none";
+
+                const allKeys = new Set([
+                    ...Object.keys(baseMetrics),
+                    ...Object.keys(otherMetrics),
+                ]);
+
+                lastCompareRows = [];
+                lastCompareBaseId = baseId;
+                lastCompareOtherId = otherId;
+
+                [...allKeys].forEach(key => {
+                    const baseVal = baseMetrics[key];
+                    const otherVal = otherMetrics[key];
+                    let pctChange = null;
+
+                    if (baseVal !== undefined && otherVal !== undefined && baseVal !== 0) {
+                        pctChange = ((otherVal / baseVal) - 1) * 100;
+                    }
+
+                    const threshold = thresholds[key];
+
+                    lastCompareRows.push({ key, baseVal, otherVal, pctChange, threshold });
+                });
+
+                buildTable();
+                document.getElementById("filters").style.display = "flex";
+            }
+
+            function sortRows(rows, order) {
+                const sorted = [...rows];
+                if (order === "name") {
+                    sorted.sort((a, b) => a.key.localeCompare(b.key));
+                } else if (order === "negative") {
+                    sorted.sort((a, b) => (a.pctChange ?? 0) - (b.pctChange ?? 0));
+                } else if (order === "positive") {
+                    sorted.sort((a, b) => (b.pctChange ?? 0) - (a.pctChange ?? 0));
+                }
+                return sorted;
+            }
+
+            function buildTable() {
+                const sortOrder = document.getElementById("sort-order").value;
+                const sorted = sortRows(lastCompareRows, sortOrder);
+                const baseId = lastCompareBaseId;
+                const otherId = lastCompareOtherId;
+                const groupByCategory = sortOrder === "name";
+
+                let html = `<table>
+                    <thead>
+                        <tr>
+                            <th>Metric</th>
+                            <th>Base (${baseId.slice(0, 8)})</th>
+                            <th>Other (${otherId.slice(0, 8)})</th>
+                            <th>Change</th>
+                            <th>Threshold</th>
+                        </tr>
+                    </thead>
+                    <tbody>`;
+
+                let currentCat = null;
+
+                sorted.forEach(row => {
+                    const { key, baseVal, otherVal, pctChange, threshold } = row;
+                    const filterClass = getCategoryFilter(key);
+
+                    if (groupByCategory) {
+                        const cat = getCategory(key);
+                        if (cat !== currentCat) {
+                            currentCat = cat;
+                            html += `<tr class="metric-category" data-filter="${filterClass}"><td colspan="5">${cat}</td></tr>`;
+                        }
+                    }
+
+                    const baseStr = baseVal !== undefined ? formatValue(key, baseVal) : "-";
+                    const otherStr = otherVal !== undefined ? formatValue(key, otherVal) : "-";
+
+                    let changeStr = "-";
+                    let changeClass = "neutral";
+
+                    if (pctChange !== null) {
+                        const ratio = otherVal / baseVal;
+                        const sign = pctChange >= 0 ? "+" : "";
+                        changeStr = `${sign}${pctChange.toFixed(2)}% (${ratio.toFixed(3)}x)`;
+
+                        const sigThreshold = threshold !== undefined ? threshold : 1;
+                        if (Math.abs(pctChange) <= sigThreshold) {
+                            changeClass = "neutral";
+                        } else {
+                            changeClass = pctChange < 0 ? "better" : "worse";
+                        }
+                    }
+
+                    const thresholdStr = threshold !== undefined ? `\u00b1${threshold.toFixed(2)}%` : "-";
+                    const significant = changeClass !== "neutral";
+
+                    html += `<tr data-filter="${filterClass}" data-significant="${significant}">
+                        <td title="${key}">${key}</td>
+                        <td>${baseStr}</td>
+                        <td>${otherStr}</td>
+                        <td class="${changeClass}">${changeStr}</td>
+                        <td class="neutral">${thresholdStr}</td>
+                    </tr>`;
+                });
+
+                html += "</tbody></table>";
+
+                document.getElementById("comparison-table").innerHTML = html;
+                applyFilters();
+            }
+
+            function sortAndRebuild() {
+                if (lastCompareRows.length === 0) return;
+                buildTable();
+            }
+
+            function filterMetrics(filter) {
+                currentFilter = filter;
+
+                document.querySelectorAll(".filter-btn").forEach(btn => {
+                    btn.classList.toggle("active", btn.textContent.trim().toLowerCase().replace(" ", "-") === filter ||
+                        (filter === "all" && btn.textContent.trim() === "All"));
+                });
+
+                applyFilters();
+            }
+
+            function applyFilters() {
+                const hideInsignificant = document.getElementById("hide-insignificant").checked;
+                const nameFilterValue = document.getElementById("name-filter").value;
+                const nameFilterInput = document.getElementById("name-filter");
+
+                let nameRegex = null;
+                if (nameFilterValue) {
+                    try {
+                        nameRegex = new RegExp(nameFilterValue, "i");
+                        nameFilterInput.style.borderColor = "#6a6a6a";
+                    } catch (e) {
+                        nameFilterInput.style.borderColor = "#f44336";
+                    }
+                } else {
+                    nameFilterInput.style.borderColor = "#6a6a6a";
+                }
+
+                const rows = document.querySelectorAll("#comparison-table tr[data-filter]");
+                let currentCategoryRow = null;
+                let categoryHasVisibleRows = false;
+
+                rows.forEach(row => {
+                    if (row.classList.contains("metric-category")) {
+                        if (currentCategoryRow && !categoryHasVisibleRows) {
+                            currentCategoryRow.classList.add("hidden");
+                        }
+                        currentCategoryRow = row;
+                        categoryHasVisibleRows = false;
+                        const matchesCategory = currentFilter === "all" || row.dataset.filter === currentFilter;
+                        row.classList.toggle("hidden", !matchesCategory);
+                        return;
+                    }
+
+                    const matchesCategory = currentFilter === "all" || row.dataset.filter === currentFilter;
+                    const matchesSignificance = !hideInsignificant || row.dataset.significant === "true";
+                    const matchesName = !nameRegex || nameRegex.test(row.querySelector("td").title);
+                    const visible = matchesCategory && matchesSignificance && matchesName;
+
+                    row.classList.toggle("hidden", !visible);
+                    if (visible) categoryHasVisibleRows = true;
+                });
+
+                if (currentCategoryRow && !categoryHasVisibleRows) {
+                    currentCategoryRow.classList.add("hidden");
+                }
+            }
+
+            const params = new URLSearchParams(window.location.search);
+            const baseParam = params.get("base");
+            const otherParam = params.get("other");
+            if (baseParam) {
+                const c = commits.find(c => c.id.startsWith(baseParam));
+                if (c) baseSearch.selectCommit(c.id);
+            }
+            if (otherParam) {
+                const c = commits.find(c => c.id.startsWith(otherParam));
+                if (c) otherSearch.selectCommit(c.id);
+            }
+        </script>
+    </body>
+</html>
