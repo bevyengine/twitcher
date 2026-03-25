@@ -21,6 +21,7 @@ struct Commit {
     timestamp: i64,
     status: Status,
     previous_done: String,
+    has_example_run: bool,
 }
 
 fn main() {
@@ -41,6 +42,15 @@ fn main() {
                 .to_string()
         })
         .collect();
+    let example_run_commits: Vec<String> = fs::read_dir("example-runs")
+        .unwrap()
+        .filter_map(|f| f.ok())
+        .filter(|entry| entry.file_type().unwrap().is_dir())
+        .filter_map(|entry| {
+            let name = entry.file_name().to_str().unwrap().to_string();
+            name.split_once('-').map(|(_, hash)| hash.to_string())
+        })
+        .collect();
     let commits_queued: Vec<String> = fs::read_dir("queue")
         .unwrap()
         .filter_map(|f| f.ok())
@@ -59,6 +69,7 @@ fn main() {
         .flat_map(|commit| {
             let captures = summary_regex.captures(commit.summary().unwrap())?;
             let id = commit.id().to_string();
+            let has_example_run = example_run_commits.contains(&id);
             Some(Commit {
                 status: if commits_done.contains(&id) {
                     Status::Done
@@ -71,6 +82,7 @@ fn main() {
                 timestamp: commit.time().seconds(),
                 summary: captures.get(1).unwrap().as_str().to_string(),
                 pr: captures.get(2).unwrap().as_str().parse().unwrap(),
+                has_example_run,
                 previous_done: String::new(),
             })
         })
