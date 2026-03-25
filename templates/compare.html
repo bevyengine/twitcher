@@ -350,17 +350,14 @@
             <button class="filter-btn active" onclick="filterMetrics('all')">
                 All
             </button>
-            <button class="filter-btn" onclick="filterMetrics('stress-test')">
+            <button class="filter-btn" onclick="filterMetrics('compile-time')">
+                Compile Time
+            </button>
+            <button class="filter-btn" onclick="filterMetrics('stress-tests')">
                 Stress Tests
             </button>
             <button class="filter-btn" onclick="filterMetrics('benchmarks')">
                 Benchmarks
-            </button>
-            <button class="filter-btn" onclick="filterMetrics('compile-time')">
-                Compile Time
-            </button>
-            <button class="filter-btn" onclick="filterMetrics('size')">
-                Binary Size
             </button>
             <label
                 style="
@@ -625,16 +622,16 @@
                 if (key.startsWith("stress-test-fps.")) return "Stress Tests";
                 if (key.startsWith("benchmarks.")) return "Benchmarks";
                 if (key.startsWith("compile-time") || key.startsWith("crate-compile-time")) return "Compile Time";
+                if (key.endsWith(".size") && key.startsWith("wasm32")) return "Binary Size (wasm32)";
                 if (key.endsWith(".size")) return "Binary Size";
                 return "Other";
             }
 
             function getCategoryFilter(key) {
-                if (key.startsWith("large-scene-fps.")) return "stress-test";
-                if (key.startsWith("stress-test-fps.")) return "stress-test";
+                if (key.startsWith("large-scene-fps.")) return "stress-tests";
+                if (key.startsWith("stress-test-fps.")) return "stress-tests";
                 if (key.startsWith("benchmarks.")) return "benchmarks";
-                if (key.startsWith("compile-time") || key.startsWith("crate-compile-time")) return "compile-time";
-                if (key.endsWith(".size")) return "size";
+                if (key.startsWith("compile-time") || key.startsWith("crate-compile-time") || key.endsWith(".size")) return "compile-time";
                 return "other";
             }
 
@@ -810,9 +807,8 @@
                     let changeClass = "neutral";
 
                     if (pctChange !== null) {
-                        const ratio = otherVal / baseVal;
                         const sign = pctChange >= 0 ? "+" : "";
-                        changeStr = `${sign}${pctChange.toFixed(2)}% (${ratio.toFixed(3)}x)`;
+                        changeStr = `${sign}${pctChange.toFixed(2)}%`;
 
                         const sigThreshold = threshold !== undefined ? threshold : 1;
                         if (Math.abs(pctChange) <= sigThreshold) {
@@ -845,6 +841,11 @@
                 buildTable();
             }
 
+            const categoryNameFilters = {
+                "stress-tests": "\\.(cpu_usage|gpu_usage|frame_time)\\.mean$",
+                "benchmarks": "\\.mean$",
+            };
+
             function filterMetrics(filter) {
                 currentFilter = filter;
 
@@ -852,6 +853,13 @@
                     btn.classList.toggle("active", btn.textContent.trim().toLowerCase().replace(" ", "-") === filter ||
                         (filter === "all" && btn.textContent.trim() === "All"));
                 });
+
+                const nameFilterInput = document.getElementById("name-filter");
+                if (filter in categoryNameFilters) {
+                    nameFilterInput.value = categoryNameFilters[filter];
+                } else {
+                    nameFilterInput.value = "";
+                }
 
                 applyFilters();
             }

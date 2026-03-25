@@ -266,6 +266,12 @@
                             <a href="benchmarks_z.html#{{ commit.id }}">
                                 Benchmarks
                             </a>
+                            {% if commit.previous_done -%}
+                            -
+                            <a href="compare.html?base={{ commit.previous_done | truncate(length=8, end="") }}&other={{ commit.id | truncate(length=8, end="") }}">
+                                Compare
+                            </a>
+                            {% endif -%}
                         </td>
                         {% elif commit.status == "Queued" -%}
                         <td>Queued</td>
