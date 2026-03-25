@@ -31,6 +31,12 @@ jobs:
         with:
           ref: "queue"
           path: "queue"
+      - name: Checkout Bevy Example Runner results branch
+        uses: actions/checkout@v4
+        with:
+          repository: "bevyengine/bevy-example-runner"
+          ref: "results"
+          path: "example-runs"
       - name: Checkout Bevy main branch
         uses: actions/checkout@v4
         with:

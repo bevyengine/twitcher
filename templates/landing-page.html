@@ -136,6 +136,12 @@
                 background-color: #3a3a3a;
             }
 
+            .data-table td a:has(svg),
+            .data-table td a:has(img) {
+                text-decoration: none;
+                margin: 0 0.25rem;
+            }
+
             .queue-commit {
                 font-size: 0.8rem;
                 font-style: italic;
@@ -145,6 +151,12 @@
     </head>
 
     <body>
+        <svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+            <symbol id="icon-compile" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m16.5 9.4-9-5.19"/><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" x2="12" y1="22.08" y2="12"/></symbol>
+            <symbol id="icon-stress" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></symbol>
+            <symbol id="icon-benchmarks" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="10" x2="14" y1="2" y2="2"/><line x1="12" x2="15" y1="14" y2="11"/><circle cx="12" cy="14" r="8"/></symbol>
+            <symbol id="icon-compare" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><path d="M13 6h3a2 2 0 0 1 2 2v7"/><path d="M11 18H8a2 2 0 0 1-2-2V9"/></symbol>
+        </svg>
         <div class="logo-container">
             <img
                 src="https://bevy.org/assets/bevy_logo_dark.svg"
@@ -174,10 +186,22 @@
             </div>
         </div>
         <div class="reports">
-            <a href="compile-stats.html">Compile Stats</a>
-            <a href="stress-tests_z.html">Stress Tests</a>
-            <a href="benchmarks_z.html">Benchmarks</a>
-            <a href="compare.html">Compare</a>
+            <a href="compile-stats.html">
+                <svg width="16" height="16" style="vertical-align: middle; margin-right: 0.5rem"><use href="#icon-compile"/></svg>
+                Compile Stats
+            </a>
+            <a href="stress-tests_z.html">
+                <svg width="16" height="16" style="vertical-align: middle; margin-right: 0.5rem"><use href="#icon-stress"/></svg>
+                Stress Tests
+            </a>
+            <a href="benchmarks_z.html">
+                <svg width="16" height="16" style="vertical-align: middle; margin-right: 0.5rem"><use href="#icon-benchmarks"/></svg>
+                Benchmarks
+            </a>
+            <a href="compare.html">
+                <svg width="16" height="16" style="vertical-align: middle; margin-right: 0.5rem"><use href="#icon-compare"/></svg>
+                Compare
+            </a>
         </div>
         <div class="links">
             <a href="https://github.com/bevyengine/twitcher">
@@ -255,21 +279,23 @@
                         </td>
                         {% if commit.status == "Done" -%}
                         <td>
-                            <a href="compile-stats.html#{{ commit.id }}">
-                                Compilation Stats
+                            <a href="compile-stats.html#{{ commit.id }}" title="Compile Stats">
+                                <svg width="16" height="16"><use href="#icon-compile"/></svg>
                             </a>
-                            -
-                            <a href="stress-tests_z.html#{{ commit.id }}">
-                                Stress Tests
+                            <a href="stress-tests_z.html#{{ commit.id }}" title="Stress Tests">
+                                <svg width="16" height="16"><use href="#icon-stress"/></svg>
                             </a>
-                            -
-                            <a href="benchmarks_z.html#{{ commit.id }}">
-                                Benchmarks
+                            <a href="benchmarks_z.html#{{ commit.id }}" title="Benchmarks">
+                                <svg width="16" height="16"><use href="#icon-benchmarks"/></svg>
                             </a>
                             {% if commit.previous_done -%}
-                            -
-                            <a href="compare.html?base={{ commit.previous_done | truncate(length=8, end="") }}&other={{ commit.id | truncate(length=8, end="") }}">
-                                Compare
+                            <a href="compare.html?base={{ commit.previous_done | truncate(length=8, end="") }}&other={{ commit.id | truncate(length=8, end="") }}" title="Compare">
+                                <svg width="16" height="16"><use href="#icon-compare"/></svg>
+                            </a>
+                            {% endif -%}
+                            {% if commit.has_example_run -%}
+                            <a href="https://pixel-eagle.com/project/b25a040a-a980-4602-b90c-d480ab84076d?filter={{ commit.id }}">
+                                <img src="https://pixel-eagle.com/logo-50.png" alt="Examples" style="height: 16px; vertical-align: middle; position: relative; top: -2px;" />
                             </a>
                             {% endif -%}
                         </td>
