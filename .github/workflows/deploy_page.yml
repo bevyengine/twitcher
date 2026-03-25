@@ -33,20 +33,20 @@ jobs:
         with:
           ref: "queue"
           path: "queue"
+      - name: Checkout Bevy Example Runner results branch
+        uses: actions/checkout@v4
+        with:
+          repository: "bevyengine/bevy-example-runner"
+          ref: "results"
+          path: "example-runs"
       - name: Checkout Bevy main branch
         uses: actions/checkout@v4
         with:
           repository: "bevyengine/bevy"
           ref: "main"
           path: "bevy"
-          fetch-depth: 500
+          fetch-depth: 2000
       - uses: Swatinem/rust-cache@v2
-      - name: Build Graphs
-        run: |
-          cargo run --release --bin graphs
-      - name: Build HTML for graphs
-        run: |
-          cargo run --release --bin raw-graphs
       - name: Build Reports
         run: |
           cargo run --release --bin reports -- ${{ github.sha }}
@@ -57,7 +57,6 @@ jobs:
         run: |
           mkdir site
           mv *.html site/
-          mv graphs site/
           mv data site/
       - name: Store generated html
         uses: actions/upload-pages-artifact@v3
