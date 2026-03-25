@@ -20,6 +20,7 @@ struct Commit {
     pr: u32,
     timestamp: i64,
     status: Status,
+    previous_done: String,
 }
 
 fn main() {
@@ -52,7 +53,7 @@ fn main() {
     let mut revwalk = repo.revwalk().unwrap();
     revwalk.set_sorting(Sort::TIME).unwrap();
     revwalk.push_head().unwrap();
-    let commits = revwalk
+    let mut commits = revwalk
         .filter_map(|c| repo.find_commit(*c.as_ref().unwrap()).ok())
         .take(500)
         .flat_map(|commit| {
@@ -70,9 +71,21 @@ fn main() {
                 timestamp: commit.time().seconds(),
                 summary: captures.get(1).unwrap().as_str().to_string(),
                 pr: captures.get(2).unwrap().as_str().parse().unwrap(),
+                previous_done: String::new(),
             })
         })
         .collect::<Vec<_>>();
+
+    // Fill in previous_done: for each commit, find the next commit (older) with status Done
+    for i in 0..commits.len() {
+        for j in (i + 1)..commits.len() {
+            if matches!(commits[j].status, Status::Done) {
+                let prev_id = commits[j].id.clone();
+                commits[i].previous_done = prev_id;
+                break;
+            }
+        }
+    }
 
     let tera = Tera::new("templates/*").unwrap();
     // Prepare the context with some data

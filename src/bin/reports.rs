@@ -84,6 +84,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let stress_tests = setup_runtime("stress-test-fps", &stats, &cache_id);
     let large_scenes = setup_runtime("large-scene-fps", &stats, &cache_id);
     let mut benchmarks = setup_benchmarks(&stats, &cache_id);
+    setup_compare(&stats, &commits, &cache_id);
 
     let mut runtime = stress_tests;
     runtime.extend(large_scenes);
@@ -177,6 +178,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let rendered = tera.render("benchmarks.html", &context).unwrap();
     std::fs::write("./benchmarks_z.html", &rendered).unwrap();
+
+    let rendered = tera.render("compare.html", &context).unwrap();
+    std::fs::write("./compare.html", &rendered).unwrap();
 
     Ok(())
 }
@@ -460,4 +464,18 @@ fn setup_benchmarks(stats: &[Stats], cache_id: &str) -> Vec<(String, f64)> {
         .into_iter()
         .map(|(_, safe_name, z_score)| (safe_name, z_score))
         .collect()
+}
+
+fn setup_compare(stats: &[Stats], commits: &[Commit], cache_id: &str) {
+    let _ = std::fs::create_dir("data/compare");
+
+    for commit in commits.iter().filter(|c| c.done) {
+        if let Some(s) = stats.iter().find(|s| s.commit == commit.id) {
+            serde_json::to_writer(
+                File::create(format!("data/compare/{}{cache_id}.json", commit.id)).unwrap(),
+                &s.metrics,
+            )
+            .unwrap();
+        }
+    }
 }
