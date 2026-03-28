@@ -117,6 +117,28 @@ impl Commands {
                             5000,
                         )),
                         Box::new(stress_tests::StressTest::on(
+                            "bevymark".to_string(),
+                            vec![
+                                ("waves".to_string(), Some("60".to_string())),
+                                ("per-wave".to_string(), Some("500".to_string())),
+                                ("benchmark".to_string(), None),
+                                ("mode".to_string(), Some("sprite_mesh".to_string())),
+                                ("alpha_mode".to_string(), Some("alpha_mask".to_string())),
+                            ],
+                            5000,
+                        )),
+                        Box::new(stress_tests::StressTest::on(
+                            "bevymark".to_string(),
+                            vec![
+                                ("waves".to_string(), Some("60".to_string())),
+                                ("per-wave".to_string(), Some("500".to_string())),
+                                ("benchmark".to_string(), None),
+                                ("mode".to_string(), Some("sprite_mesh".to_string())),
+                                ("alpha_mode".to_string(), Some("blend".to_string())),
+                            ],
+                            5000,
+                        )),
+                        Box::new(stress_tests::StressTest::on(
                             "many_animated_sprites".to_string(),
                             vec![],
                             30000,
