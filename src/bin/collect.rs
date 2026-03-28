@@ -107,12 +107,34 @@ impl Commands {
                             10000,
                         )),
                         Box::new(stress_tests::StressTest::on(
-                            "bevymark".to_string(),
+                            "bevymark_mesh2d".to_string(),
                             vec![
                                 ("waves".to_string(), Some("60".to_string())),
                                 ("per-wave".to_string(), Some("500".to_string())),
                                 ("benchmark".to_string(), None),
                                 ("mode".to_string(), Some("mesh2d".to_string())),
+                            ],
+                            5000,
+                        )),
+                        Box::new(stress_tests::StressTest::on(
+                            "bevymark_sprite_mesh_mask".to_string(),
+                            vec![
+                                ("waves".to_string(), Some("60".to_string())),
+                                ("per-wave".to_string(), Some("500".to_string())),
+                                ("benchmark".to_string(), None),
+                                ("mode".to_string(), Some("sprite_mesh".to_string())),
+                                ("alpha_mode".to_string(), Some("alpha_mask".to_string())),
+                            ],
+                            5000,
+                        )),
+                        Box::new(stress_tests::StressTest::on(
+                            "bevymark_sprite_mesh_blend".to_string(),
+                            vec![
+                                ("waves".to_string(), Some("60".to_string())),
+                                ("per-wave".to_string(), Some("500".to_string())),
+                                ("benchmark".to_string(), None),
+                                ("mode".to_string(), Some("sprite_mesh".to_string())),
+                                ("alpha_mode".to_string(), Some("blend".to_string())),
                             ],
                             5000,
                         )),
