@@ -107,7 +107,7 @@ impl Commands {
                             10000,
                         )),
                         Box::new(stress_tests::StressTest::on(
-                            "bevymark_mesh2d".to_string(),
+                            "bevymark".to_string(),
                             vec![
                                 ("waves".to_string(), Some("60".to_string())),
                                 ("per-wave".to_string(), Some("500".to_string())),
@@ -117,7 +117,7 @@ impl Commands {
                             5000,
                         )),
                         Box::new(stress_tests::StressTest::on(
-                            "bevymark_sprite_mesh_mask".to_string(),
+                            "bevymark".to_string(),
                             vec![
                                 ("waves".to_string(), Some("60".to_string())),
                                 ("per-wave".to_string(), Some("500".to_string())),
@@ -128,7 +128,7 @@ impl Commands {
                             5000,
                         )),
                         Box::new(stress_tests::StressTest::on(
-                            "bevymark_sprite_mesh_blend".to_string(),
+                            "bevymark".to_string(),
                             vec![
                                 ("waves".to_string(), Some("60".to_string())),
                                 ("per-wave".to_string(), Some("500".to_string())),
