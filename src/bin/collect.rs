@@ -273,13 +273,26 @@ impl Commands {
             } => {
                 if scene.is_empty() {
                     vec![
+                        Box::new(
+                            large_scenes::LargeScene::on(
+                                "bistro".to_string(),
+                                vec![("compress".to_string(), None)],
+                                25000,
+                            )
+                            .with_features(vec!["mipmap_generator/compress"]),
+                        ),
                         Box::new(large_scenes::LargeScene::on(
                             "bistro".to_string(),
-                            vec![],
+                            vec![("no-mip-generation".to_string(), None)],
                             25000,
                         )),
                         Box::new(large_scenes::LargeScene::on(
                             "caldera_hotel".to_string(),
+                            vec![],
+                            25000,
+                        )),
+                        Box::new(large_scenes::LargeScene::on(
+                            "bevy_city".to_string(),
                             vec![],
                             25000,
                         )),
@@ -302,9 +315,10 @@ impl Commands {
                         })
                         .collect();
 
-                    vec![Box::new(large_scenes::LargeScene::on(
-                        scene, parameters, nb_frames,
-                    ))]
+                    vec![Box::new(
+                        large_scenes::LargeScene::on(scene, parameters, nb_frames)
+                            .with_features(vec!["mipmap_generator/compress"]),
+                    )]
                 }
             }
             Commands::Benchmarks => {
