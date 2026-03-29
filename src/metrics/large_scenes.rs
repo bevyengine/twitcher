@@ -52,6 +52,12 @@ impl Metrics for LargeScene {
         }
 
         let sh = Shell::new().unwrap();
+        if self
+            .features
+            .contains(&"mipmap_generator/compress".to_string())
+        {
+            sh.set_var("RUSTFLAGS", "-C linker=clang");
+        }
         let mut features = self.features.clone();
         features.push("bevy/bevy_ci_testing".to_string());
         let features = features
@@ -105,6 +111,12 @@ impl Metrics for LargeScene {
             .unwrap();
         let sh = Shell::new().unwrap();
         sh.set_var("CI_TESTING_CONFIG", config);
+        if self
+            .features
+            .contains(&"mipmap_generator/compress".to_string())
+        {
+            sh.set_var("RUSTFLAGS", "-C linker=clang");
+        }
 
         let parameters = self
             .parameters
