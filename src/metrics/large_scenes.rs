@@ -42,7 +42,9 @@ impl Metrics for LargeScene {
         if fs_extra::dir::copy(
             format!("/assets/{scene}"),
             format!("examples/large_scenes/{scene}/assets"),
-            &fs_extra::dir::CopyOptions::new().copy_inside(true),
+            &fs_extra::dir::CopyOptions::new()
+                .copy_inside(true)
+                .skip_exist(true),
         )
         .is_err()
         {
