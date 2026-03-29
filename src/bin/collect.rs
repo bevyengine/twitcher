@@ -293,7 +293,7 @@ impl Commands {
                         )),
                         Box::new(large_scenes::LargeScene::on(
                             "bevy_city".to_string(),
-                            vec![],
+                            vec![("no-cpu-culling".into(), None)],
                             25000,
                         )),
                     ]
