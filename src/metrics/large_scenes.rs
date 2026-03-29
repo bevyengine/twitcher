@@ -42,7 +42,9 @@ impl Metrics for LargeScene {
         if fs_extra::dir::copy(
             format!("/assets/{scene}"),
             format!("examples/large_scenes/{scene}/assets"),
-            &fs_extra::dir::CopyOptions::new().copy_inside(true),
+            &fs_extra::dir::CopyOptions::new()
+                .copy_inside(true)
+                .skip_exist(true),
         )
         .is_err()
         {
@@ -50,6 +52,12 @@ impl Metrics for LargeScene {
         }
 
         let sh = Shell::new().unwrap();
+        if self
+            .features
+            .contains(&"mipmap_generator/compress".to_string())
+        {
+            sh.set_var("RUSTFLAGS", "-C linker=clang");
+        }
         let mut features = self.features.clone();
         features.push("bevy/bevy_ci_testing".to_string());
         let features = features
@@ -103,6 +111,12 @@ impl Metrics for LargeScene {
             .unwrap();
         let sh = Shell::new().unwrap();
         sh.set_var("CI_TESTING_CONFIG", config);
+        if self
+            .features
+            .contains(&"mipmap_generator/compress".to_string())
+        {
+            sh.set_var("RUSTFLAGS", "-C linker=clang");
+        }
 
         let parameters = self
             .parameters
@@ -165,74 +179,80 @@ impl Metrics for LargeScene {
         let gpu_memory = gpu_usage.iter().map(|v| v.mem as f32).collect::<Vec<_>>();
         let gpu_usage = gpu_usage.iter().map(|v| v.sm as f32).collect::<Vec<_>>();
 
-        results.insert(
-            format!("{key}.cpu_usage.mean"),
-            (statistical::mean(&cpu_usage) * 1000.0) as u64,
-        );
-        results.insert(
-            format!("{key}.cpu_usage.median"),
-            (statistical::median(&cpu_usage) * 1000.0) as u64,
-        );
-        results.insert(
-            format!("{key}.cpu_usage.min"),
-            cpu_usage.iter().map(|d| (d * 1000.0) as u64).min().unwrap(),
-        );
-        results.insert(
-            format!("{key}.cpu_usage.max"),
-            cpu_usage.iter().map(|d| (d * 1000.0) as u64).max().unwrap(),
-        );
-        results.insert(
-            format!("{key}.cpu_usage.std_dev"),
-            (statistical::standard_deviation(&cpu_usage, None) * 1000.0) as u64,
-        );
-        results.insert(
-            format!("{key}.gpu_usage.mean"),
-            (statistical::mean(&gpu_usage) * 1000.0) as u64,
-        );
-        results.insert(
-            format!("{key}.gpu_usage.median"),
-            (statistical::median(&gpu_usage) * 1000.0) as u64,
-        );
-        results.insert(
-            format!("{key}.gpu_usage.min"),
-            gpu_usage.iter().map(|d| (d * 1000.0) as u64).min().unwrap(),
-        );
-        results.insert(
-            format!("{key}.gpu_usage.max"),
-            gpu_usage.iter().map(|d| (d * 1000.0) as u64).max().unwrap(),
-        );
-        results.insert(
-            format!("{key}.gpu_usage.std_dev"),
-            (statistical::standard_deviation(&gpu_usage, None) * 1000.0) as u64,
-        );
-        results.insert(
-            format!("{key}.gpu_memory.mean"),
-            (statistical::mean(&gpu_memory) * 1000.0) as u64,
-        );
-        results.insert(
-            format!("{key}.gpu_memory.median"),
-            (statistical::median(&gpu_memory) * 1000.0) as u64,
-        );
-        results.insert(
-            format!("{key}.gpu_memory.min"),
-            gpu_memory
-                .iter()
-                .map(|d| (d * 1000.0) as u64)
-                .min()
-                .unwrap(),
-        );
-        results.insert(
-            format!("{key}.gpu_memory.max"),
-            gpu_memory
-                .iter()
-                .map(|d| (d * 1000.0) as u64)
-                .max()
-                .unwrap(),
-        );
-        results.insert(
-            format!("{key}.gpu_memory.std_dev"),
-            (statistical::standard_deviation(&gpu_memory, None) * 1000.0) as u64,
-        );
+        if cpu_usage.len() > 3 {
+            results.insert(
+                format!("{key}.cpu_usage.mean"),
+                (statistical::mean(&cpu_usage) * 1000.0) as u64,
+            );
+            results.insert(
+                format!("{key}.cpu_usage.median"),
+                (statistical::median(&cpu_usage) * 1000.0) as u64,
+            );
+            results.insert(
+                format!("{key}.cpu_usage.min"),
+                cpu_usage.iter().map(|d| (d * 1000.0) as u64).min().unwrap(),
+            );
+            results.insert(
+                format!("{key}.cpu_usage.max"),
+                cpu_usage.iter().map(|d| (d * 1000.0) as u64).max().unwrap(),
+            );
+            results.insert(
+                format!("{key}.cpu_usage.std_dev"),
+                (statistical::standard_deviation(&cpu_usage, None) * 1000.0) as u64,
+            );
+        }
+        if gpu_usage.len() > 3 {
+            results.insert(
+                format!("{key}.gpu_usage.mean"),
+                (statistical::mean(&gpu_usage) * 1000.0) as u64,
+            );
+            results.insert(
+                format!("{key}.gpu_usage.median"),
+                (statistical::median(&gpu_usage) * 1000.0) as u64,
+            );
+            results.insert(
+                format!("{key}.gpu_usage.min"),
+                gpu_usage.iter().map(|d| (d * 1000.0) as u64).min().unwrap(),
+            );
+            results.insert(
+                format!("{key}.gpu_usage.max"),
+                gpu_usage.iter().map(|d| (d * 1000.0) as u64).max().unwrap(),
+            );
+            results.insert(
+                format!("{key}.gpu_usage.std_dev"),
+                (statistical::standard_deviation(&gpu_usage, None) * 1000.0) as u64,
+            );
+        }
+        if gpu_memory.len() > 3 {
+            results.insert(
+                format!("{key}.gpu_memory.mean"),
+                (statistical::mean(&gpu_memory) * 1000.0) as u64,
+            );
+            results.insert(
+                format!("{key}.gpu_memory.median"),
+                (statistical::median(&gpu_memory) * 1000.0) as u64,
+            );
+            results.insert(
+                format!("{key}.gpu_memory.min"),
+                gpu_memory
+                    .iter()
+                    .map(|d| (d * 1000.0) as u64)
+                    .min()
+                    .unwrap(),
+            );
+            results.insert(
+                format!("{key}.gpu_memory.max"),
+                gpu_memory
+                    .iter()
+                    .map(|d| (d * 1000.0) as u64)
+                    .max()
+                    .unwrap(),
+            );
+            results.insert(
+                format!("{key}.gpu_memory.std_dev"),
+                (statistical::standard_deviation(&gpu_memory, None) * 1000.0) as u64,
+            );
+        }
         results.insert(format!("{key}.duration"), elapsed.as_millis() as u64);
         results.insert(format!("{key}.frames"), self.nb_frames as u64);
 
@@ -258,34 +278,36 @@ impl Metrics for LargeScene {
                 .flat_map(|record| record.get(1).unwrap().parse::<f32>())
                 .collect::<Vec<_>>();
 
-            results.insert(
-                format!("{key}.frame_time.mean"),
-                (statistical::mean(&frame_times) * 1000.0) as u64,
-            );
-            results.insert(
-                format!("{key}.frame_time.median"),
-                (statistical::median(&frame_times) * 1000.0) as u64,
-            );
-            results.insert(
-                format!("{key}.frame_time.min"),
-                frame_times
-                    .iter()
-                    .map(|d| (d * 1000.0) as u64)
-                    .min()
-                    .unwrap(),
-            );
-            results.insert(
-                format!("{key}.frame_time.max"),
-                frame_times
-                    .iter()
-                    .map(|d| (d * 1000.0) as u64)
-                    .max()
-                    .unwrap(),
-            );
-            results.insert(
-                format!("{key}.frame_time.std_dev"),
-                (statistical::standard_deviation(&frame_times, None) * 1000.0) as u64,
-            );
+            if !frame_times.len() > 3 {
+                results.insert(
+                    format!("{key}.frame_time.mean"),
+                    (statistical::mean(&frame_times) * 1000.0) as u64,
+                );
+                results.insert(
+                    format!("{key}.frame_time.median"),
+                    (statistical::median(&frame_times) * 1000.0) as u64,
+                );
+                results.insert(
+                    format!("{key}.frame_time.min"),
+                    frame_times
+                        .iter()
+                        .map(|d| (d * 1000.0) as u64)
+                        .min()
+                        .unwrap(),
+                );
+                results.insert(
+                    format!("{key}.frame_time.max"),
+                    frame_times
+                        .iter()
+                        .map(|d| (d * 1000.0) as u64)
+                        .max()
+                        .unwrap(),
+                );
+                results.insert(
+                    format!("{key}.frame_time.std_dev"),
+                    (statistical::standard_deviation(&frame_times, None) * 1000.0) as u64,
+                );
+            }
         }
 
         results
