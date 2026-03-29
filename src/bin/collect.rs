@@ -159,6 +159,11 @@ impl Commands {
                             15000,
                         )),
                         Box::new(stress_tests::StressTest::on(
+                            "many_morph_targets".to_string(),
+                            vec![],
+                            15000,
+                        )),
+                        Box::new(stress_tests::StressTest::on(
                             "many_gizmos".to_string(),
                             vec![],
                             5000,
