@@ -136,17 +136,21 @@ impl Metrics for LargeScene {
             .into_iter()
             .flat_map(|f| ["--features".to_string(), f]);
 
-        let _guard = sh.push_env(
+        let _ = cmd!(sh, "sudo systemctl start lightdm").run();
+        thread::sleep(Duration::from_secs(10));
+
+        let _mangohud_guard = sh.push_env(
             "MANGOHUD_CONFIG",
             format!(
                 "output_folder={},autostart_log=10",
                 std::env::current_dir().unwrap().display()
             ),
         );
+        let _display_guard = sh.push_env("DISPLAY", ":0");
 
         let cmd = cmd!(
             sh,
-            "xvfb-run mangohud cargo run --release {features...} --package {scene} -- {parameters...}"
+            "mangohud cargo run --release {features...} --package {scene} -- {parameters...}"
         );
         let mut results = HashMap::new();
 
@@ -158,7 +162,12 @@ impl Metrics for LargeScene {
         while gpu.try_recv().is_ok() {}
 
         let start = Instant::now();
-        if cmd.run().is_err() {
+        let cmd_result = cmd.run();
+
+        let _ = cmd!(sh, "sudo systemctl stop lightdm").run();
+        thread::sleep(Duration::from_secs(5));
+
+        if cmd_result.is_err() {
             // ignore failure due to a missing scene
             return results;
         };

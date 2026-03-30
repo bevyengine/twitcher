@@ -118,17 +118,21 @@ impl Metrics for StressTest {
             .into_iter()
             .flat_map(|f| ["--features".to_string(), f]);
 
-        let _guard = sh.push_env(
+        let _ = cmd!(sh, "sudo systemctl start lightdm").run();
+        thread::sleep(Duration::from_secs(10));
+
+        let _mangohud_guard = sh.push_env(
             "MANGOHUD_CONFIG",
             format!(
                 "output_folder={},autostart_log=1",
                 std::env::current_dir().unwrap().display()
             ),
         );
+        let _display_guard = sh.push_env("DISPLAY", ":0");
 
         let cmd = cmd!(
             sh,
-            "xvfb-run mangohud cargo run --release {features...} --example {stress_tests} -- {parameters...}"
+            "mangohud cargo run --release {features...} --example {stress_tests} -- {parameters...}"
         );
         let mut results = HashMap::new();
 
@@ -140,7 +144,12 @@ impl Metrics for StressTest {
         while gpu.try_recv().is_ok() {}
 
         let start = Instant::now();
-        let Ok(output) = cmd.output() else {
+        let cmd_output = cmd.output();
+
+        let _ = cmd!(sh, "sudo systemctl stop lightdm").run();
+        thread::sleep(Duration::from_secs(5));
+
+        let Ok(output) = cmd_output else {
             // ignore failure due to a missing stress test
             return results;
         };
