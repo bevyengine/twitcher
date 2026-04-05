@@ -240,9 +240,8 @@ fn setup_runtime(kind: &str, stats: &[Stats], cache_id: &str) -> Vec<(String, f6
         timestamp: u128,
         commit: String,
         frame_time: u64,
-        frame_time_mangohud: Option<u64>,
-        cpu: u64,
-        gpu: u64,
+        cpu: Option<u64>,
+        gpu: Option<u64>,
     }
 
     let mut stress_tests = stats
@@ -261,7 +260,7 @@ fn setup_runtime(kind: &str, stats: &[Stats], cache_id: &str) -> Vec<(String, f6
     let with_z_scores = stress_tests
         .into_iter()
         .flat_map(|stress_test| {
-            let mut values = stats
+            let values = stats
                 .iter()
                 .filter(|stat| {
                     (chrono::Utc::now()
@@ -270,50 +269,32 @@ fn setup_runtime(kind: &str, stats: &[Stats], cache_id: &str) -> Vec<(String, f6
                         <= DATE_LIMIT
                         && chrono::DateTime::from_timestamp_millis(stat.commit_timestamp as i64)
                             .unwrap()
-                            > chrono::DateTime::parse_from_rfc3339("2025-08-27T00:00:00Z").unwrap() // Data before this date is not with the same format
+                            > chrono::DateTime::parse_from_rfc3339("2026-03-30T12:00:00Z").unwrap() // Data before this date is not with the same format
                 })
                 .flat_map(|stat| {
                     stat.metrics
                         .get(&format!(
-                            "{kind}.{}.{}.duration",
+                            "{kind}.{}.{}.frame_time.mean",
                             stress_test.0, stress_test.1
                         ))
-                        .map(|value| DataPoint {
+                        .map(|frame_time| DataPoint {
                             timestamp: stat.commit_timestamp,
                             commit: stat.commit.clone(),
-                            frame_time: (1000.0 * (*value as f64)
-                                / (stat
-                                    .metrics
-                                    .get(&format!(
-                                        "{kind}.{}.{}.frames",
-                                        stress_test.0, stress_test.1
-                                    ))
-                                    .cloned()
-                                    .unwrap() as f64))
-                                as u64,
-                            frame_time_mangohud: stat
-                                .metrics
-                                .get(&format!(
-                                    "{kind}.{}.{}.frame_time.mean",
-                                    stress_test.0, stress_test.1
-                                ))
-                                .cloned(),
+                            frame_time: *frame_time,
                             cpu: stat
                                 .metrics
                                 .get(&format!(
-                                    "{kind}.{}.{}.cpu_usage.mean",
+                                    "{kind}.{}.{}.cpu_load.mean",
                                     stress_test.0, stress_test.1
                                 ))
-                                .cloned()
-                                .unwrap_or(0),
+                                .cloned(),
                             gpu: stat
                                 .metrics
                                 .get(&format!(
-                                    "{kind}.{}.{}.gpu_usage.mean",
+                                    "{kind}.{}.{}.gpu_load.mean",
                                     stress_test.0, stress_test.1
                                 ))
-                                .cloned()
-                                .unwrap_or(0),
+                                .cloned(),
                         })
                 })
                 .collect::<Vec<_>>();
@@ -322,27 +303,10 @@ fn setup_runtime(kind: &str, stats: &[Stats], cache_id: &str) -> Vec<(String, f6
                 return None;
             }
 
-            // frame time from mangohud is available for all commits, use it instead
-            if values.iter().all(|v| v.frame_time_mangohud.is_some()) {
-                values.iter_mut().for_each(|v| {
-                    v.frame_time = v.frame_time_mangohud.unwrap();
-                    v.frame_time_mangohud = None;
-                });
-            } else {
-                // TODO: once this log doesn't happen, cleanup frame time computation
-                println!(
-                    "Using old frame time for {} {}",
-                    stress_test.0, stress_test.1
-                );
-            }
+            let file_name = format!("{}{}", stress_test.0, stress_test.1.replace("params", ""),);
 
             serde_json::to_writer(
-                std::fs::File::create(format!(
-                    "data/{}{}{cache_id}.json",
-                    stress_test.0,
-                    stress_test.1.replace("params", ""),
-                ))
-                .unwrap(),
+                std::fs::File::create(format!("data/{file_name}{cache_id}.json")).unwrap(),
                 &values,
             )
             .unwrap();
@@ -377,7 +341,10 @@ fn setup_runtime(kind: &str, stats: &[Stats], cache_id: &str) -> Vec<(String, f6
 
     with_z_scores
         .into_iter()
-        .map(|(name, params, z_score)| (format!("{name}{}", params.replace("params", "")), z_score))
+        .map(|(name, params, z_score)| {
+            let file_name = format!("{name}{}", params.replace("params", ""));
+            (file_name.clone(), z_score)
+        })
         .collect()
 }
 
