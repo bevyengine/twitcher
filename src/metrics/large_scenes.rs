@@ -281,41 +281,55 @@ impl Metrics for LargeScene {
             let _ = reader.read_line(&mut tmp);
             let _ = reader.read_line(&mut tmp);
             let mut rdr = csv::ReaderBuilder::new().from_reader(reader);
-            let frame_times = rdr
+            let (frame_times, cpu, gpu, vram, ram): (
+                Vec<f32>,
+                Vec<f32>,
+                Vec<f32>,
+                Vec<f32>,
+                Vec<f32>,
+            ) = rdr
                 .records()
                 .flatten()
-                .flat_map(|record| record.get(1).unwrap().parse::<f32>())
-                .collect::<Vec<_>>();
+                .map(|record| {
+                    (
+                        record.get(1).unwrap().parse::<f32>().unwrap_or_default(),
+                        record.get(2).unwrap().parse::<f32>().unwrap_or_default(),
+                        record.get(3).unwrap().parse::<f32>().unwrap_or_default(),
+                        record.get(8).unwrap().parse::<f32>().unwrap_or_default(),
+                        record.get(10).unwrap().parse::<f32>().unwrap_or_default(),
+                    )
+                })
+                .collect();
 
-            if !frame_times.len() > 3 {
-                results.insert(
-                    format!("{key}.frame_time.mean"),
-                    (statistical::mean(&frame_times) * 1000.0) as u64,
-                );
-                results.insert(
-                    format!("{key}.frame_time.median"),
-                    (statistical::median(&frame_times) * 1000.0) as u64,
-                );
-                results.insert(
-                    format!("{key}.frame_time.min"),
-                    frame_times
-                        .iter()
-                        .map(|d| (d * 1000.0) as u64)
-                        .min()
-                        .unwrap(),
-                );
-                results.insert(
-                    format!("{key}.frame_time.max"),
-                    frame_times
-                        .iter()
-                        .map(|d| (d * 1000.0) as u64)
-                        .max()
-                        .unwrap(),
-                );
-                results.insert(
-                    format!("{key}.frame_time.std_dev"),
-                    (statistical::standard_deviation(&frame_times, None) * 1000.0) as u64,
-                );
+            for (values, name) in [
+                (frame_times, "frame_time"),
+                (cpu, "cpu_load"),
+                (gpu, "gpu_load"),
+                (ram, "ram_used"),
+                (vram, "vram_used"),
+            ] {
+                if values.len() > 3 {
+                    results.insert(
+                        format!("{key}.{name}.mean"),
+                        (statistical::mean(&values) * 1000.0) as u64,
+                    );
+                    results.insert(
+                        format!("{key}.{name}.median"),
+                        (statistical::median(&values) * 1000.0) as u64,
+                    );
+                    results.insert(
+                        format!("{key}.{name}.min"),
+                        values.iter().map(|d| (d * 1000.0) as u64).min().unwrap(),
+                    );
+                    results.insert(
+                        format!("{key}.{name}.max"),
+                        values.iter().map(|d| (d * 1000.0) as u64).max().unwrap(),
+                    );
+                    results.insert(
+                        format!("{key}.{name}.std_dev"),
+                        (statistical::standard_deviation(&values, None) * 1000.0) as u64,
+                    );
+                }
             }
         }
 
