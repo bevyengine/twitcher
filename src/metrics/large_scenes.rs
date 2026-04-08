@@ -181,25 +181,23 @@ impl Metrics for LargeScene {
             let _ = reader.read_line(&mut tmp);
             let _ = reader.read_line(&mut tmp);
             let mut rdr = csv::ReaderBuilder::new().from_reader(reader);
-            let (frame_times, cpu, gpu, vram, ram): (
-                Vec<f32>,
-                Vec<f32>,
-                Vec<f32>,
-                Vec<f32>,
-                Vec<f32>,
-            ) = rdr
+            let samples: Vec<super::MangohudSample> = rdr
                 .records()
                 .flatten()
-                .map(|record| {
-                    (
-                        record.get(1).unwrap().parse::<f32>().unwrap_or_default(),
-                        record.get(2).unwrap().parse::<f32>().unwrap_or_default(),
-                        record.get(3).unwrap().parse::<f32>().unwrap_or_default(),
-                        record.get(8).unwrap().parse::<f32>().unwrap_or_default(),
-                        record.get(10).unwrap().parse::<f32>().unwrap_or_default(),
-                    )
+                .map(|record| super::MangohudSample {
+                    frame_time: record.get(1).unwrap().parse::<f32>().unwrap_or_default(),
+                    cpu: record.get(2).unwrap().parse::<f32>().unwrap_or_default(),
+                    gpu: record.get(3).unwrap().parse::<f32>().unwrap_or_default(),
+                    vram: record.get(8).unwrap().parse::<f32>().unwrap_or_default(),
+                    ram: record.get(10).unwrap().parse::<f32>().unwrap_or_default(),
                 })
                 .collect();
+
+            let frame_times: Vec<f32> = samples.iter().map(|s| s.frame_time).collect();
+            let cpu: Vec<f32> = samples.iter().map(|s| s.cpu).collect();
+            let gpu: Vec<f32> = samples.iter().map(|s| s.gpu).collect();
+            let ram: Vec<f32> = samples.iter().map(|s| s.ram).collect();
+            let vram: Vec<f32> = samples.iter().map(|s| s.vram).collect();
 
             for (values, name) in [
                 (frame_times, "frame_time"),
