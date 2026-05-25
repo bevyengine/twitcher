@@ -6,7 +6,6 @@ use std::{
     time::{Duration, Instant},
 };
 
-use crossbeam::channel::Receiver;
 use xshell::{Shell, cmd};
 
 use crate::Metrics;
@@ -77,9 +76,6 @@ impl Metrics for StressTest {
     }
 
     fn collect(&self) -> HashMap<String, u64> {
-        let cpu = cpu_usage();
-        let gpu = gpu_usage();
-
         let key = format!(
             "stress-test-fps.{}.{}",
             self.stress_test,
@@ -118,159 +114,36 @@ impl Metrics for StressTest {
             .into_iter()
             .flat_map(|f| ["--features".to_string(), f]);
 
-        let _guard = sh.push_env(
+        let _ = cmd!(sh, "sudo systemctl start lightdm").run();
+        thread::sleep(Duration::from_secs(10));
+
+        let _mangohud_guard = sh.push_env(
             "MANGOHUD_CONFIG",
             format!(
                 "output_folder={},autostart_log=1",
                 std::env::current_dir().unwrap().display()
             ),
         );
+        let _display_guard = sh.push_env("DISPLAY", ":0");
 
         let cmd = cmd!(
             sh,
-            "xvfb-run mangohud cargo run --release {features...} --example {stress_tests} -- {parameters...}"
+            "mangohud cargo run --release {features...} --example {stress_tests} -- {parameters...}"
         );
         let mut results = HashMap::new();
 
-        // Wait for the monitoring threads to start
-        let _ = cpu.recv();
-        let _ = gpu.recv();
-        // Clear channels
-        while cpu.try_recv().is_ok() {}
-        while gpu.try_recv().is_ok() {}
-
         let start = Instant::now();
-        let Ok(output) = cmd.output() else {
-            // ignore failure due to a missing stress test
+        let cmd_result = cmd.run();
+
+        let _ = cmd!(sh, "sudo systemctl stop lightdm").run();
+        thread::sleep(Duration::from_secs(5));
+
+        if cmd_result.is_err() {
+            // ignore failure due to a missing scene
             return results;
         };
         let elapsed = start.elapsed();
 
-        let cpu_usage = cpu.try_iter().skip(2).collect::<Vec<_>>();
-        while cpu.try_recv().is_ok() {}
-        std::mem::drop(cpu);
-
-        let gpu_usage = gpu
-            .try_iter()
-            .filter(|v| v.sm != 0)
-            .skip(2)
-            .collect::<Vec<_>>();
-        while gpu.try_recv().is_ok() {}
-        std::mem::drop(gpu);
-
-        let gpu_memory = gpu_usage.iter().map(|v| v.mem as f32).collect::<Vec<_>>();
-        let gpu_usage = gpu_usage.iter().map(|v| v.sm as f32).collect::<Vec<_>>();
-
-        let fpss = output
-            .stdout
-            .lines()
-            .chain(output.stderr.lines())
-            .map_while(|line| line.ok())
-            .filter(|line| line.contains("fps"))
-            .filter(|line| line.contains("avg"))
-            .map(|line| line.split("fps").nth(1).unwrap().to_string())
-            .map(|line| line.split("(").nth(0).unwrap().to_string())
-            .map(|line| line.split(":").nth(1).unwrap().to_string())
-            .map(|line| line.trim().to_string())
-            .map(|line| line.parse::<f32>().unwrap())
-            .collect::<Vec<_>>();
-
-        if !fpss.is_empty() {
-            results.insert(
-                format!("{key}.mean"),
-                (statistical::mean(&fpss) * 1000.0) as u64,
-            );
-            results.insert(
-                format!("{key}.median"),
-                (statistical::median(&fpss) * 1000.0) as u64,
-            );
-            results.insert(
-                format!("{key}.min"),
-                fpss.iter().map(|d| (d * 1000.0) as u64).min().unwrap(),
-            );
-            results.insert(
-                format!("{key}.max"),
-                fpss.iter().map(|d| (d * 1000.0) as u64).max().unwrap(),
-            );
-            results.insert(
-                format!("{key}.std_dev"),
-                (statistical::standard_deviation(&fpss, None) * 1000.0) as u64,
-            );
-        }
-        if cpu_usage.len() > 3 {
-            results.insert(
-                format!("{key}.cpu_usage.mean"),
-                (statistical::mean(&cpu_usage) * 1000.0) as u64,
-            );
-            results.insert(
-                format!("{key}.cpu_usage.median"),
-                (statistical::median(&cpu_usage) * 1000.0) as u64,
-            );
-            results.insert(
-                format!("{key}.cpu_usage.min"),
-                cpu_usage.iter().map(|d| (d * 1000.0) as u64).min().unwrap(),
-            );
-            results.insert(
-                format!("{key}.cpu_usage.max"),
-                cpu_usage.iter().map(|d| (d * 1000.0) as u64).max().unwrap(),
-            );
-            results.insert(
-                format!("{key}.cpu_usage.std_dev"),
-                (statistical::standard_deviation(&cpu_usage, None) * 1000.0) as u64,
-            );
-        }
-        if gpu_usage.len() > 3 {
-            results.insert(
-                format!("{key}.gpu_usage.mean"),
-                (statistical::mean(&gpu_usage) * 1000.0) as u64,
-            );
-            results.insert(
-                format!("{key}.gpu_usage.median"),
-                (statistical::median(&gpu_usage) * 1000.0) as u64,
-            );
-            results.insert(
-                format!("{key}.gpu_usage.min"),
-                gpu_usage.iter().map(|d| (d * 1000.0) as u64).min().unwrap(),
-            );
-            results.insert(
-                format!("{key}.gpu_usage.max"),
-                gpu_usage.iter().map(|d| (d * 1000.0) as u64).max().unwrap(),
-            );
-            results.insert(
-                format!("{key}.gpu_usage.std_dev"),
-                (statistical::standard_deviation(&gpu_usage, None) * 1000.0) as u64,
-            );
-        }
-        if gpu_memory.len() > 3 {
-            results.insert(
-                format!("{key}.gpu_memory.mean"),
-                (statistical::mean(&gpu_memory) * 1000.0) as u64,
-            );
-            results.insert(
-                format!("{key}.gpu_memory.median"),
-                (statistical::median(&gpu_memory) * 1000.0) as u64,
-            );
-            results.insert(
-                format!("{key}.gpu_memory.min"),
-                gpu_memory
-                    .iter()
-                    .map(|d| (d * 1000.0) as u64)
-                    .min()
-                    .unwrap(),
-            );
-            results.insert(
-                format!("{key}.gpu_memory.max"),
-                gpu_memory
-                    .iter()
-                    .map(|d| (d * 1000.0) as u64)
-                    .max()
-                    .unwrap(),
-            );
-            results.insert(
-                format!("{key}.gpu_memory.std_dev"),
-                (statistical::standard_deviation(&gpu_memory, None) * 1000.0) as u64,
-            );
-        }
         results.insert(format!("{key}.duration"), elapsed.as_millis() as u64);
         results.insert(format!("{key}.frames"), self.nb_frames as u64);
 
@@ -290,121 +163,56 @@ impl Metrics for StressTest {
             let _ = reader.read_line(&mut tmp);
             let _ = reader.read_line(&mut tmp);
             let mut rdr = csv::ReaderBuilder::new().from_reader(reader);
-            let frame_times = rdr
+            let samples: Vec<super::MangohudSample> = rdr
                 .records()
                 .flatten()
-                .flat_map(|record| record.get(1).unwrap().parse::<f32>())
-                .collect::<Vec<_>>();
+                .map(|record| super::MangohudSample {
+                    frame_time: record.get(1).unwrap().parse::<f32>().unwrap_or_default(),
+                    cpu: record.get(2).unwrap().parse::<f32>().unwrap_or_default(),
+                    gpu: record.get(3).unwrap().parse::<f32>().unwrap_or_default(),
+                    vram: record.get(8).unwrap().parse::<f32>().unwrap_or_default(),
+                    ram: record.get(10).unwrap().parse::<f32>().unwrap_or_default(),
+                })
+                .collect();
 
-            if !frame_times.len() > 3 {
-                results.insert(
-                    format!("{key}.frame_time.mean"),
-                    (statistical::mean(&frame_times) * 1000.0) as u64,
-                );
-                results.insert(
-                    format!("{key}.frame_time.median"),
-                    (statistical::median(&frame_times) * 1000.0) as u64,
-                );
-                results.insert(
-                    format!("{key}.frame_time.min"),
-                    frame_times
-                        .iter()
-                        .map(|d| (d * 1000.0) as u64)
-                        .min()
-                        .unwrap(),
-                );
-                results.insert(
-                    format!("{key}.frame_time.max"),
-                    frame_times
-                        .iter()
-                        .map(|d| (d * 1000.0) as u64)
-                        .max()
-                        .unwrap(),
-                );
-                results.insert(
-                    format!("{key}.frame_time.std_dev"),
-                    (statistical::standard_deviation(&frame_times, None) * 1000.0) as u64,
-                );
+            let frame_times: Vec<f32> = samples.iter().map(|s| s.frame_time).collect();
+            let cpu: Vec<f32> = samples.iter().map(|s| s.cpu).collect();
+            let gpu: Vec<f32> = samples.iter().map(|s| s.gpu).collect();
+            let ram: Vec<f32> = samples.iter().map(|s| s.ram).collect();
+            let vram: Vec<f32> = samples.iter().map(|s| s.vram).collect();
+
+            for (values, name) in [
+                (frame_times, "frame_time"),
+                (cpu, "cpu_load"),
+                (gpu, "gpu_load"),
+                (ram, "ram_used"),
+                (vram, "vram_used"),
+            ] {
+                if values.len() > 3 {
+                    results.insert(
+                        format!("{key}.{name}.mean"),
+                        (statistical::mean(&values) * 1000.0) as u64,
+                    );
+                    results.insert(
+                        format!("{key}.{name}.median"),
+                        (statistical::median(&values) * 1000.0) as u64,
+                    );
+                    results.insert(
+                        format!("{key}.{name}.min"),
+                        values.iter().map(|d| (d * 1000.0) as u64).min().unwrap(),
+                    );
+                    results.insert(
+                        format!("{key}.{name}.max"),
+                        values.iter().map(|d| (d * 1000.0) as u64).max().unwrap(),
+                    );
+                    results.insert(
+                        format!("{key}.{name}.std_dev"),
+                        (statistical::standard_deviation(&values, None) * 1000.0) as u64,
+                    );
+                }
             }
         }
 
         results
     }
-}
-
-fn cpu_usage() -> Receiver<f32> {
-    let (tx, rx) = crossbeam::channel::unbounded();
-
-    thread::spawn(move || {
-        let mut sys = sysinfo::System::new();
-        let delay = sysinfo::MINIMUM_CPU_UPDATE_INTERVAL.max(Duration::from_secs(1));
-
-        loop {
-            sys.refresh_cpu_usage();
-            if tx.send(sys.global_cpu_usage()).is_err() {
-                break;
-            }
-            std::thread::sleep(delay);
-        }
-    });
-
-    rx
-}
-
-#[derive(Debug)]
-struct GpuUsage {
-    sm: u32,
-    mem: u32,
-}
-
-fn gpu_usage() -> Receiver<GpuUsage> {
-    let (tx, rx) = crossbeam::channel::unbounded();
-    use nvml_wrapper::{Nvml, error::NvmlError};
-
-    thread::spawn(move || {
-        let Ok(nvml) = Nvml::init() else {
-            println!("Couldn't load nvidia driver");
-            return;
-        };
-        let device = nvml.device_by_index(0).unwrap();
-        let delay = Duration::from_secs(1);
-
-        let mut timestamp = None;
-
-        let _ = tx.try_send(GpuUsage { sm: 0, mem: 0 });
-
-        loop {
-            let processes = match device.process_utilization_stats(timestamp) {
-                Ok(processes) => processes,
-                Err(NvmlError::NotFound) => {
-                    // No process using the GPU found
-                    if tx.send(GpuUsage { sm: 0, mem: 0 }).is_err() {
-                        break;
-                    }
-                    continue;
-                }
-                Err(_) => {
-                    println!("Couldn't get process utilization stats");
-                    break;
-                }
-            };
-
-            let process = &processes[0];
-            timestamp = Some(process.timestamp);
-
-            if tx
-                .send(GpuUsage {
-                    sm: process.sm_util,
-                    mem: process.mem_util,
-                })
-                .is_err()
-            {
-                break;
-            }
-            std::thread::sleep(delay);
-        }
-        let _ = tx.try_send(GpuUsage { sm: 0, mem: 0 });
-    });
-
-    rx
 }

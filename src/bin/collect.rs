@@ -104,7 +104,7 @@ impl Commands {
                                 ("benchmark".to_string(), None),
                                 ("mode".to_string(), Some("sprite".to_string())),
                             ],
-                            10000,
+                            20000,
                         )),
                         Box::new(stress_tests::StressTest::on(
                             "bevymark".to_string(),
@@ -114,7 +114,7 @@ impl Commands {
                                 ("benchmark".to_string(), None),
                                 ("mode".to_string(), Some("mesh2d".to_string())),
                             ],
-                            5000,
+                            10000,
                         )),
                         Box::new(stress_tests::StressTest::on(
                             "bevymark".to_string(),
@@ -125,7 +125,7 @@ impl Commands {
                                 ("mode".to_string(), Some("sprite_mesh".to_string())),
                                 ("alpha-mode".to_string(), Some("alpha_mask".to_string())),
                             ],
-                            5000,
+                            10000,
                         )),
                         Box::new(stress_tests::StressTest::on(
                             "bevymark".to_string(),
@@ -136,67 +136,67 @@ impl Commands {
                                 ("mode".to_string(), Some("sprite_mesh".to_string())),
                                 ("alpha-mode".to_string(), Some("blend".to_string())),
                             ],
-                            5000,
+                            10000,
                         )),
                         Box::new(stress_tests::StressTest::on(
                             "many_animated_sprites".to_string(),
                             vec![],
-                            30000,
+                            50000,
                         )),
                         Box::new(stress_tests::StressTest::on(
                             "many_buttons".to_string(),
                             vec![],
-                            5000,
+                            10000,
                         )),
                         Box::new(stress_tests::StressTest::on(
                             "many_cubes".to_string(),
                             vec![("benchmark".to_string(), None)],
-                            15000,
+                            20000,
                         )),
                         Box::new(stress_tests::StressTest::on(
                             "many_foxes".to_string(),
                             vec![],
-                            15000,
+                            30000,
                         )),
                         Box::new(stress_tests::StressTest::on(
                             "many_morph_targets".to_string(),
                             vec![],
-                            15000,
+                            30000,
                         )),
                         Box::new(stress_tests::StressTest::on(
                             "many_gizmos".to_string(),
                             vec![],
-                            5000,
+                            10000,
                         )),
                         Box::new(stress_tests::StressTest::on(
                             "many_glyphs".to_string(),
                             vec![],
-                            10000,
+                            15000,
                         )),
                         Box::new(stress_tests::StressTest::on(
                             "many_gradients".to_string(),
                             vec![],
-                            20000,
+                            40000,
                         )),
                         Box::new(stress_tests::StressTest::on(
                             "many_lights".to_string(),
                             vec![],
-                            5000,
+                            10000,
                         )),
                         Box::new(stress_tests::StressTest::on(
                             "many_materials".to_string(),
                             vec![],
-                            20000,
+                            40000,
                         )),
                         Box::new(stress_tests::StressTest::on(
                             "many_sprites".to_string(),
                             vec![],
-                            30000,
+                            60000,
                         )),
                         Box::new(stress_tests::StressTest::on(
                             "many_text2d".to_string(),
                             vec![],
-                            20000,
+                            30000,
                         )),
                         Box::new(stress_tests::StressTest::on(
                             "bevymark_3d".to_string(),
@@ -206,7 +206,7 @@ impl Commands {
                                 ("per-wave".to_string(), Some("200".to_string())),
                                 ("alpha-mode".to_string(), Some("blend".to_string())),
                             ],
-                            10000,
+                            20000,
                         )),
                         Box::new(stress_tests::StressTest::on(
                             "bevymark_3d".to_string(),
@@ -216,7 +216,7 @@ impl Commands {
                                 ("per-wave".to_string(), Some("500".to_string())),
                                 ("alpha-mode".to_string(), Some("opaque".to_string())),
                             ],
-                            10000,
+                            20000,
                         )),
                         Box::new(stress_tests::StressTest::on(
                             "bevymark_3d".to_string(),
@@ -226,7 +226,7 @@ impl Commands {
                                 ("per-wave".to_string(), Some("500".to_string())),
                                 ("alpha-mode".to_string(), Some("alpha_mask".to_string())),
                             ],
-                            10000,
+                            20000,
                         )),
                         Box::new(
                             stress_tests::StressTest::on(
@@ -277,24 +277,24 @@ impl Commands {
                             large_scenes::LargeScene::on(
                                 "bistro".to_string(),
                                 vec![("compress".to_string(), None)],
-                                25000,
+                                30000,
                             )
                             .with_features(vec!["mipmap_generator/compress"]),
                         ),
                         Box::new(large_scenes::LargeScene::on(
                             "bistro".to_string(),
                             vec![("no-mip-generation".to_string(), None)],
-                            25000,
+                            30000,
                         )),
                         Box::new(large_scenes::LargeScene::on(
                             "caldera_hotel".to_string(),
                             vec![],
-                            25000,
+                            30000,
                         )),
                         Box::new(large_scenes::LargeScene::on(
                             "bevy_city".to_string(),
                             vec![("no-cpu-culling".into(), None)],
-                            25000,
+                            30000,
                         )),
                     ]
                 } else {

@@ -1,3 +1,11 @@
+pub(crate) struct MangohudSample {
+    pub frame_time: f32,
+    pub cpu: f32,
+    pub gpu: f32,
+    pub vram: f32,
+    pub ram: f32,
+}
+
 pub mod benchmarks;
 pub mod binary_size;
 pub mod compile_time;
