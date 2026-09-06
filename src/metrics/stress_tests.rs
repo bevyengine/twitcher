@@ -1,6 +1,6 @@
 use std::{
     collections::HashMap,
-    io::{BufRead, Write},
+    io::Write,
     path::{Path, PathBuf},
     thread,
     time::{Duration, Instant},
