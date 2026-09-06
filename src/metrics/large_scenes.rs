@@ -1,6 +1,6 @@
 use std::{
     collections::HashMap,
-    io::{BufRead, Write},
+    io::Write,
     path::{Path, PathBuf},
     thread,
     time::{Duration, Instant},
@@ -132,6 +132,13 @@ impl Metrics for LargeScene {
             .into_iter()
             .flat_map(|f| ["--features".to_string(), f]);
 
+        if cmd!(sh, "sudo /usr/local/sbin/pin.sh lock").run().is_err() {
+            eprintln!(
+                "pin.sh lock failed - skipping large scene to avoid measuring an unlocked GPU"
+            );
+            return HashMap::new();
+        }
+
         let _ = cmd!(sh, "sudo systemctl start lightdm").run();
         thread::sleep(Duration::from_secs(10));
 
@@ -144,6 +151,8 @@ impl Metrics for LargeScene {
         );
         let _display_guard = sh.push_env("DISPLAY", ":0");
 
+        let _scale_guard = sh.push_env("WINIT_X11_SCALE_FACTOR", "1");
+
         let cmd = cmd!(
             sh,
             "mangohud cargo run --release {features...} --package {scene} -- {parameters...}"
@@ -155,6 +164,7 @@ impl Metrics for LargeScene {
 
         let _ = cmd!(sh, "sudo systemctl stop lightdm").run();
         thread::sleep(Duration::from_secs(5));
+        let _ = cmd!(sh, "sudo /usr/local/sbin/pin.sh unlock").run();
 
         if cmd_result.is_err() {
             // ignore failure due to a missing scene
@@ -174,24 +184,7 @@ impl Metrics for LargeScene {
             })
             .max_by_key(|x| x.metadata().unwrap().modified().unwrap())
         {
-            let csv_file = std::fs::File::open(last_modified_file.path()).unwrap();
-            // Skip first two lines as they're info about system
-            let mut reader = std::io::BufReader::new(csv_file);
-            let mut tmp = String::new();
-            let _ = reader.read_line(&mut tmp);
-            let _ = reader.read_line(&mut tmp);
-            let mut rdr = csv::ReaderBuilder::new().from_reader(reader);
-            let samples: Vec<super::MangohudSample> = rdr
-                .records()
-                .flatten()
-                .map(|record| super::MangohudSample {
-                    frame_time: record.get(1).unwrap().parse::<f32>().unwrap_or_default(),
-                    cpu: record.get(2).unwrap().parse::<f32>().unwrap_or_default(),
-                    gpu: record.get(3).unwrap().parse::<f32>().unwrap_or_default(),
-                    vram: record.get(8).unwrap().parse::<f32>().unwrap_or_default(),
-                    ram: record.get(10).unwrap().parse::<f32>().unwrap_or_default(),
-                })
-                .collect();
+            let samples = super::parse_mangohud_csv(&last_modified_file.path());
 
             let frame_times: Vec<f32> = samples.iter().map(|s| s.frame_time).collect();
             let cpu: Vec<f32> = samples.iter().map(|s| s.cpu).collect();
