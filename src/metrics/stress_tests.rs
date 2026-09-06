@@ -122,7 +122,7 @@ impl Metrics for StressTest {
         }
 
         let _ = cmd!(sh, "sudo systemctl start lightdm").run();
-        thread::sleep(Duration::from_secs(10));
+        thread::sleep(Duration::from_secs(15));
 
         let _mangohud_guard = sh.push_env(
             "MANGOHUD_CONFIG",
