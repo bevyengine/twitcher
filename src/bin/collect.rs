@@ -185,6 +185,11 @@ impl Commands {
                             10000,
                         )),
                         Box::new(stress_tests::StressTest::on(
+                            "many_cameras_lights".to_string(),
+                            vec![],
+                            10000,
+                        )),
+                        Box::new(stress_tests::StressTest::on(
                             "many_cubes".to_string(),
                             vec![("benchmark".to_string(), None)],
                             20000,
@@ -230,9 +235,19 @@ impl Commands {
                             60000,
                         )),
                         Box::new(stress_tests::StressTest::on(
+                            "many_text".to_string(),
+                            vec![],
+                            30000,
+                        )),
+                        Box::new(stress_tests::StressTest::on(
                             "many_text2d".to_string(),
                             vec![],
                             30000,
+                        )),
+                        Box::new(stress_tests::StressTest::on(
+                            "text_pipeline".to_string(),
+                            vec![],
+                            15000,
                         )),
                         Box::new(stress_tests::StressTest::on(
                             "bevymark_3d".to_string(),
