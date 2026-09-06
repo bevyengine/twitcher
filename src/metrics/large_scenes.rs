@@ -132,6 +132,11 @@ impl Metrics for LargeScene {
             .into_iter()
             .flat_map(|f| ["--features".to_string(), f]);
 
+        if cmd!(sh, "sudo /usr/local/sbin/pin.sh lock").run().is_err() {
+            eprintln!("pin.sh lock failed — skipping large scene to avoid measuring an unlocked GPU");
+            return HashMap::new();
+        }
+
         let _ = cmd!(sh, "sudo systemctl start lightdm").run();
         thread::sleep(Duration::from_secs(10));
 
@@ -157,6 +162,7 @@ impl Metrics for LargeScene {
 
         let _ = cmd!(sh, "sudo systemctl stop lightdm").run();
         thread::sleep(Duration::from_secs(5));
+        let _ = cmd!(sh, "sudo /usr/local/sbin/pin.sh unlock").run();
 
         if cmd_result.is_err() {
             // ignore failure due to a missing scene
