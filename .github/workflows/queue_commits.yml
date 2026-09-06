@@ -95,9 +95,8 @@ jobs:
           commits=$(cd bevy && git log --no-abbrev-commit --pretty=format:%H | sort)
 
           for suite in $SUITES; do
-            pending=$(find "queue/$suite" -maxdepth 1 -type f 2>/dev/null | wc -l)
-            if [ "$pending" -gt 0 ]; then
-              echo "$suite: $pending still queued, not backfilling"
+            if [ -d "queue/$suite" ]; then
+              echo "$suite: still queued, not backfilling"
               continue
             fi
 
