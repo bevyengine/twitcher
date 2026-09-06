@@ -142,6 +142,21 @@
                 margin: 0 0.25rem;
             }
 
+            .suite-missing {
+                display: inline-block;
+                margin-top: 0.4rem;
+            }
+
+            .suite-badge {
+                display: inline-block;
+                background-color: #4a6e91;
+                border: 1px solid #6a8fb3;
+                border-radius: 6px;
+                padding: 1px 7px;
+                margin: 0 2px;
+                font-size: 0.8rem;
+            }
+
             .queue-commit {
                 font-size: 0.8rem;
                 font-style: italic;
@@ -173,8 +188,16 @@
                 </p>
                 {% if missing != 0 -%}
                 <p>
-                    Missing <b>{{ missing }}</b> commits over the last {{
-                    commits | length }}
+                    <b>{{ missing }}</b> of the last {{ commits | length }} commits
+                    not fully collected
+                    <br />
+                    <span class="suite-missing">
+                        {% for suite in missing_by_suite -%}
+                        {% if suite.count != 0 -%}
+                        <span class="suite-badge">{{ suite.name }} {{ suite.count }}</span>
+                        {% endif -%}
+                        {% endfor -%}
+                    </span>
                 </p>
                 {% else -%}
                 <p>All done!</p>
@@ -238,17 +261,32 @@
                 <thead>
                     <tr>
                         <th>Machine</th>
+                        <th>Suites</th>
                         <th>CPU</th>
                         <th>GPU</th>
                         <th>RAM</th>
                     </tr>
                 </thead>
                 <tbody>
+                    {# Hardcoded. Suite ownership also lives in
+                       machines/ansible/host_vars/*.yml, so if a suite is reassigned
+                       this table has to be edited too. #}
                     <tr>
                         <td>bevy-bench-01</td>
+                        <td><span class="suite-badge">rendering</span></td>
                         <td>AMD Ryzen 9 9950X</td>
                         <td>NVIDIA GeForce RTX 3060</td>
-                        <td>64GB</td>
+                        <td>64 GB</td>
+                    </tr>
+                    <tr>
+                        <td>bevy-bench-02</td>
+                        <td>
+                            <span class="suite-badge">build</span>
+                            <span class="suite-badge">benches</span>
+                        </td>
+                        <td>AMD Ryzen 9 9950X</td>
+                        <td>NVIDIA GeForce RTX 3060</td>
+                        <td>64 GB</td>
                     </tr>
                 </tbody>
             </table>
@@ -279,15 +317,21 @@
                         </td>
                         {% if commit.status == "Done" -%}
                         <td>
+                            {% if commit.suites.build -%}
                             <a href="compile-stats.html#{{ commit.id }}" title="Compile Stats">
                                 <svg width="16" height="16"><use href="#icon-compile"/></svg>
                             </a>
+                            {% endif -%}
+                            {% if commit.suites.rendering -%}
                             <a href="stress-tests_z.html#{{ commit.id }}" title="Stress Tests">
                                 <svg width="16" height="16"><use href="#icon-stress"/></svg>
                             </a>
+                            {% endif -%}
+                            {% if commit.suites.benches -%}
                             <a href="benchmarks_z.html#{{ commit.id }}" title="Benchmarks">
                                 <svg width="16" height="16"><use href="#icon-benchmarks"/></svg>
                             </a>
+                            {% endif -%}
                             {% if commit.previous_done -%}
                             <a href="compare.html?base={{ commit.previous_done | truncate(length=8, end="") }}&other={{ commit.id | truncate(length=8, end="") }}" title="Compare">
                                 <svg width="16" height="16"><use href="#icon-compare"/></svg>
@@ -298,17 +342,18 @@
                                 <img src="https://pixel-eagle.com/logo-50.png" alt="Examples" style="height: 16px; vertical-align: middle; position: relative; top: -2px;" />
                             </a>
                             {% endif -%}
+                            {% if not commit.complete -%}
+                            <span class="queue-commit" title="Some suites have not been collected yet">partial</span>
+                            {% endif -%}
                         </td>
                         {% elif commit.status == "Queued" -%}
                         <td>Queued</td>
                         {% else -%}
-                        <td>
-                            <a
-                                class="queue-commit"
-                                href="https://github.com/bevyengine/twitcher/new/queue?filename={{ commit.id }}"
-                            >
-                                Queue this commit
-                            </a>
+                        <td class="queue-commit">
+                            Queue:
+                            <a href="https://github.com/bevyengine/twitcher/new/queue?filename=build/{{ commit.id }}">build</a>
+                            <a href="https://github.com/bevyengine/twitcher/new/queue?filename=benches/{{ commit.id }}">benches</a>
+                            <a href="https://github.com/bevyengine/twitcher/new/queue?filename=rendering/{{ commit.id }}">rendering</a>
                         </td>
                         {% endif -%}
                     </tr>

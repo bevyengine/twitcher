@@ -1,4 +1,9 @@
-use std::{collections::HashSet, fs::File, io::BufReader, path::Path};
+use std::{
+    collections::{HashMap, HashSet},
+    fs::File,
+    io::BufReader,
+    path::Path,
+};
 
 use chrono::{Days, Months};
 use git2::{Repository, Sort};
@@ -437,12 +442,20 @@ fn setup_compare(stats: &[Stats], commits: &[Commit], cache_id: &str) {
     let _ = std::fs::create_dir("data/compare");
 
     for commit in commits.iter().filter(|c| c.done) {
-        if let Some(s) = stats.iter().find(|s| s.commit == commit.id) {
-            serde_json::to_writer(
-                File::create(format!("data/compare/{}{cache_id}.json", commit.id)).unwrap(),
-                &s.metrics,
-            )
-            .unwrap();
+        let metrics: HashMap<&String, &u64> = stats
+            .iter()
+            .filter(|s| s.commit == commit.id)
+            .flat_map(|s| s.metrics.iter())
+            .collect();
+
+        if metrics.is_empty() {
+            continue;
         }
+
+        serde_json::to_writer(
+            File::create(format!("data/compare/{}{cache_id}.json", commit.id)).unwrap(),
+            &metrics,
+        )
+        .unwrap();
     }
 }

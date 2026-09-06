@@ -6,7 +6,7 @@ use std::{
     time::{Duration, SystemTime, UNIX_EPOCH},
 };
 
-use clap::{Parser, Subcommand};
+use clap::{Parser, Subcommand, ValueEnum};
 use strum::{EnumIter, IntoEnumIterator};
 use twitcher::{
     Metrics,
@@ -14,6 +14,26 @@ use twitcher::{
     stats::{Host, Rust, Stats},
 };
 use xshell::{Shell, cmd};
+
+#[derive(Copy, Clone, Debug, PartialEq, Eq, ValueEnum)]
+#[value(rename_all = "kebab-case")]
+enum Suite {
+    Build,
+    Benches,
+    Rendering,
+}
+
+impl Suite {
+    fn as_str(self) -> &'static str {
+        match self {
+            Suite::Build => "build",
+            Suite::Benches => "benches",
+            Suite::Rendering => "rendering",
+        }
+    }
+}
+
+type SuiteGroup = (Option<Suite>, Vec<Box<dyn Metrics>>);
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
@@ -29,6 +49,9 @@ struct Cli {
     /// Target folder for results
     #[arg(short, long, default_value = "results")]
     out: String,
+
+    #[arg(short, long, value_delimiter = ',')]
+    suites: Option<Vec<Suite>>,
 
     #[command(subcommand)]
     command: Commands,
@@ -71,6 +94,19 @@ enum Commands {
 }
 
 impl Commands {
+    fn suite(&self) -> Option<Suite> {
+        match self {
+            Commands::BinarySize { .. }
+            | Commands::WasmBinarySize { .. }
+            | Commands::CompileTime { .. }
+            | Commands::CrateCompileTime
+            | Commands::LlvmLines => Some(Suite::Build),
+            Commands::Benchmarks => Some(Suite::Benches),
+            Commands::StressTest { .. } | Commands::LargeScene { .. } => Some(Suite::Rendering),
+            Commands::All => None,
+        }
+    }
+
     #[allow(clippy::wrong_self_convention)]
     fn to_metrics(self, recur: bool) -> Vec<Box<dyn Metrics>> {
         match self {
@@ -345,6 +381,11 @@ impl Commands {
 fn main() {
     let cli = Cli::parse();
 
+    if cli.suites.is_some() && !matches!(cli.command, Commands::All) {
+        eprintln!("--suites is only valid with the `all` subcommand");
+        std::process::exit(2);
+    }
+
     let commit = if let Some(commit) = cli.commit {
         let sh = Shell::new().unwrap();
         cmd!(sh, "git checkout {commit}").run().unwrap();
@@ -366,27 +407,28 @@ fn main() {
         String::from_utf8(output).unwrap().parse::<u128>().unwrap() * 1000
     };
 
-    let metrics_to_run = cli.command.to_metrics(true);
-
     let output_prefix = Path::new(&cli.out)
         .join(commit.chars().next().unwrap().to_string())
         .join(commit.chars().nth(1).unwrap().to_string())
         .join(&commit);
+    std::fs::create_dir_all(&output_prefix).unwrap();
 
-    let mut metrics: HashMap<String, u64> = metrics_to_run
-        .iter()
-        .filter(|m| m.prepare())
-        .flat_map(|m| {
-            for (save_as, file_name) in m.artifacts() {
-                let target_folder = output_prefix.join(save_as);
-                std::fs::create_dir_all(&target_folder).unwrap();
-                std::fs::copy(file_name.clone(), target_folder.join(file_name)).unwrap();
-            }
-            let metrics = m.collect();
-            std::thread::sleep(Duration::from_secs(5));
-            metrics
-        })
-        .collect();
+    let groups: Vec<SuiteGroup> = match &cli.suites {
+        None => vec![(None, cli.command.to_metrics(true))],
+        Some(suites) => suites
+            .iter()
+            .map(|suite| {
+                let metrics = Commands::iter()
+                    .filter(|c| !matches!(c, Commands::All))
+                    .filter(|c| !matches!(c, Commands::LlvmLines))
+                    .filter(|c| !matches!(c, Commands::CrateCompileTime))
+                    .filter(|c| c.suite() == Some(*suite))
+                    .flat_map(|c| c.to_metrics(false))
+                    .collect();
+                (Some(*suite), metrics)
+            })
+            .collect(),
+    };
 
     let sh = Shell::new().unwrap();
     let stable = String::from_utf8(cmd!(sh, "rustc --version").output().unwrap().stdout)
@@ -411,36 +453,61 @@ fn main() {
         .trim()
         .to_string();
 
-    if cli.merge_results
-        && let Ok(file) = File::open(output_prefix.join("stats.json"))
-    {
-        let previous_stats: Result<Stats, _> = serde_json::from_reader(file);
-        if let Ok(mut previous_stats) = previous_stats {
-            for (key, value) in metrics {
-                previous_stats.metrics.insert(key, value);
-            }
-            metrics = previous_stats.metrics;
-        }
-    }
+    for (suite, metrics_to_run) in groups {
+        let file_name = match suite {
+            Some(suite) => format!("stats.{}.json", suite.as_str()),
+            None => "stats.json".to_string(),
+        };
 
-    let file = File::create(output_prefix.join("stats.json")).unwrap();
-    let mut writer = BufWriter::new(file);
-    serde_json::to_writer(
-        &mut writer,
-        &Stats {
-            metrics,
-            commit,
-            timestamp: SystemTime::now()
-                .duration_since(UNIX_EPOCH)
-                .unwrap()
-                .as_millis(),
-            commit_timestamp,
-            rust: Rust { stable, nightly },
-            host: Host {
-                hostname,
-                os_version,
+        let mut metrics: HashMap<String, u64> = metrics_to_run
+            .iter()
+            .filter(|m| m.prepare())
+            .flat_map(|m| {
+                for (save_as, file_name) in m.artifacts() {
+                    let target_folder = output_prefix.join(save_as);
+                    std::fs::create_dir_all(&target_folder).unwrap();
+                    std::fs::copy(file_name.clone(), target_folder.join(file_name)).unwrap();
+                }
+                let metrics = m.collect();
+                std::thread::sleep(Duration::from_secs(5));
+                metrics
+            })
+            .collect();
+
+        if cli.merge_results
+            && let Ok(file) = File::open(output_prefix.join(&file_name))
+        {
+            let previous_stats: Result<Stats, _> = serde_json::from_reader(file);
+            if let Ok(mut previous_stats) = previous_stats {
+                for (key, value) in metrics {
+                    previous_stats.metrics.insert(key, value);
+                }
+                metrics = previous_stats.metrics;
+            }
+        }
+
+        let file = File::create(output_prefix.join(&file_name)).unwrap();
+        let mut writer = BufWriter::new(file);
+        serde_json::to_writer(
+            &mut writer,
+            &Stats {
+                metrics,
+                commit: commit.clone(),
+                timestamp: SystemTime::now()
+                    .duration_since(UNIX_EPOCH)
+                    .unwrap()
+                    .as_millis(),
+                commit_timestamp,
+                rust: Rust {
+                    stable: stable.clone(),
+                    nightly: nightly.clone(),
+                },
+                host: Host {
+                    hostname: hostname.clone(),
+                    os_version: os_version.clone(),
+                },
             },
-        },
-    )
-    .unwrap();
+        )
+        .unwrap();
+    }
 }

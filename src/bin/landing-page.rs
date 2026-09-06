@@ -1,4 +1,4 @@
-use std::{fs, path::Path};
+use std::{collections::HashMap, fs, path::Path};
 
 use git2::{Repository, Sort};
 use regex::Regex;
@@ -13,6 +13,29 @@ enum Status {
     Queued,
 }
 
+#[derive(Serialize, Default, Clone)]
+struct Suites {
+    build: bool,
+    benches: bool,
+    rendering: bool,
+}
+
+impl Suites {
+    fn any(&self) -> bool {
+        self.build || self.benches || self.rendering
+    }
+
+    fn all(&self) -> bool {
+        self.build && self.benches && self.rendering
+    }
+}
+
+#[derive(Serialize)]
+struct SuiteMissing {
+    name: &'static str,
+    count: usize,
+}
+
 #[derive(Serialize)]
 struct Commit {
     id: String,
@@ -20,6 +43,8 @@ struct Commit {
     pr: u32,
     timestamp: i64,
     status: Status,
+    suites: Suites,
+    complete: bool,
     previous_done: String,
     has_example_run: bool,
 }
@@ -30,18 +55,31 @@ fn main() {
         Err(e) => panic!("failed to open: {}", e),
     };
 
-    let commits_done: Vec<String> = find_stats_files(Path::new("results"))
-        .iter()
-        .map(|path| {
-            path.parent()
-                .unwrap()
-                .file_name()
-                .unwrap()
-                .to_str()
-                .unwrap()
-                .to_string()
-        })
-        .collect();
+    let mut done_suites: HashMap<String, Suites> = HashMap::new();
+    for path in find_stats_files(Path::new("results")) {
+        let sha = path
+            .parent()
+            .unwrap()
+            .file_name()
+            .unwrap()
+            .to_str()
+            .unwrap()
+            .to_string();
+        let entry = done_suites.entry(sha).or_default();
+        match path.file_name().unwrap().to_str().unwrap() {
+            "stats.json" => {
+                *entry = Suites {
+                    build: true,
+                    benches: true,
+                    rendering: true,
+                }
+            }
+            "stats.build.json" => entry.build = true,
+            "stats.benches.json" => entry.benches = true,
+            "stats.rendering.json" => entry.rendering = true,
+            _ => {}
+        }
+    }
     let example_run_commits: Vec<String> = fs::read_dir("example-runs")
         .unwrap()
         .filter_map(|f| f.ok())
@@ -54,8 +92,15 @@ fn main() {
     let commits_queued: Vec<String> = fs::read_dir("queue")
         .unwrap()
         .filter_map(|f| f.ok())
-        .filter(|entry| entry.file_type().unwrap().is_file())
-        .map(|entry| entry.file_name().to_str().unwrap().to_string())
+        .filter(|suite| suite.file_type().unwrap().is_dir())
+        .filter_map(|suite| fs::read_dir(suite.path()).ok())
+        .flat_map(|entries| {
+            entries
+                .filter_map(|f| f.ok())
+                .filter(|e| e.file_type().unwrap().is_file())
+                .map(|e| e.file_name().to_str().unwrap().to_string())
+                .collect::<Vec<_>>()
+        })
         .collect();
 
     let summary_regex = Regex::new("(.*) \\(#([0-9]+)\\)").unwrap();
@@ -70,14 +115,17 @@ fn main() {
             let captures = summary_regex.captures(commit.summary().unwrap())?;
             let id = commit.id().to_string();
             let has_example_run = example_run_commits.contains(&id);
+            let suites = done_suites.get(&id).cloned().unwrap_or_default();
             Some(Commit {
-                status: if commits_done.contains(&id) {
+                status: if suites.any() {
                     Status::Done
                 } else if commits_queued.contains(&id) {
                     Status::Queued
                 } else {
                     Status::Unknown
                 },
+                complete: suites.all(),
+                suites,
                 id,
                 timestamp: commit.time().seconds(),
                 summary: captures.get(1).unwrap().as_str().to_string(),
@@ -103,12 +151,23 @@ fn main() {
     // Prepare the context with some data
     let mut context = tera::Context::new();
     context.insert("commits", &commits);
+    context.insert("missing", &(commits.iter().filter(|c| !c.complete).count()));
     context.insert(
-        "missing",
-        &(commits
-            .iter()
-            .filter(|c| !matches!(c.status, Status::Done))
-            .count()),
+        "missing_by_suite",
+        &[
+            SuiteMissing {
+                name: "build",
+                count: commits.iter().filter(|c| !c.suites.build).count(),
+            },
+            SuiteMissing {
+                name: "benches",
+                count: commits.iter().filter(|c| !c.suites.benches).count(),
+            },
+            SuiteMissing {
+                name: "rendering",
+                count: commits.iter().filter(|c| !c.suites.rendering).count(),
+            },
+        ],
     );
     context.insert("updated", &(chrono::Utc::now().timestamp()));
 
