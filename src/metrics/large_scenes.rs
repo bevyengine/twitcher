@@ -144,6 +144,8 @@ impl Metrics for LargeScene {
         );
         let _display_guard = sh.push_env("DISPLAY", ":0");
 
+        let _scale_guard = sh.push_env("WINIT_X11_SCALE_FACTOR", "1");
+
         let cmd = cmd!(
             sh,
             "mangohud cargo run --release {features...} --package {scene} -- {parameters...}"
