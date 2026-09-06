@@ -1,0 +1,67 @@
+name: Build and Deploy Page
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - results
+
+jobs:
+  build-and-deploy:
+    name: build-and-deploy
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    steps:
+      - name: Install dependencies
+        run: |
+          sudo apt-get update;
+          DEBIAN_FRONTEND=noninteractive sudo apt-get install --no-install-recommends -yq libfontconfig1-dev
+      - name: Checkout Twitcher main branch
+        uses: actions/checkout@v4
+        with:
+          ref: "main"
+      - name: Checkout Twitcher results branch
+        uses: actions/checkout@v4
+        with:
+          ref: "results"
+          path: "results"
+      - name: Checkout Twitcher queue branch
+        uses: actions/checkout@v4
+        with:
+          ref: "queue"
+          path: "queue"
+      - name: Checkout Bevy Example Runner results branch
+        uses: actions/checkout@v4
+        with:
+          repository: "bevyengine/bevy-example-runner"
+          ref: "results"
+          path: "example-runs"
+      - name: Checkout Bevy main branch
+        uses: actions/checkout@v4
+        with:
+          repository: "bevyengine/bevy"
+          ref: "main"
+          path: "bevy"
+          fetch-depth: 2000
+      - uses: Swatinem/rust-cache@v2
+      - name: Build Reports
+        run: |
+          cargo run --release --bin reports -- ${{ github.sha }}
+      - name: Build Landing Page
+        run: |
+          cargo run --release --bin landing-page
+      - name: Prepare Site
+        run: |
+          mkdir site
+          mv *.html site/
+          mv data site/
+      - name: Store generated html
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./site
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
