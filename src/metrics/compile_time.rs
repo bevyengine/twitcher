@@ -37,7 +37,7 @@ impl Metrics for CompileTime {
         let json = format!("build-{}.json", self.nb_jobs);
         cmd!(
             sh,
-            "hyperfine --export-json {json} --prepare 'cargo clean; sleep 2' {command}"
+            "hyperfine --runs 5 --export-json {json} --prepare 'cargo clean; sleep 2' {command}"
         )
         .run()
         .is_ok()
