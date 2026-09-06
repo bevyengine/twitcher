@@ -34,6 +34,8 @@ git pull
 
 cargo build --release --bin collect
 
+rm -rf queue results bevy
+
 git clone --depth 1 --single-branch -b queue git@github.com:bevyengine/twitcher.git queue
 gitref=$(
     for suite in $suites; do
