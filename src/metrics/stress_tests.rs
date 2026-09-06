@@ -115,7 +115,9 @@ impl Metrics for StressTest {
             .flat_map(|f| ["--features".to_string(), f]);
 
         if cmd!(sh, "sudo /usr/local/sbin/pin.sh lock").run().is_err() {
-            eprintln!("pin.sh lock failed — skipping stress test to avoid measuring an unlocked GPU");
+            eprintln!(
+                "pin.sh lock failed - skipping stress test to avoid measuring an unlocked GPU"
+            );
             return HashMap::new();
         }
 

@@ -133,7 +133,9 @@ impl Metrics for LargeScene {
             .flat_map(|f| ["--features".to_string(), f]);
 
         if cmd!(sh, "sudo /usr/local/sbin/pin.sh lock").run().is_err() {
-            eprintln!("pin.sh lock failed — skipping large scene to avoid measuring an unlocked GPU");
+            eprintln!(
+                "pin.sh lock failed - skipping large scene to avoid measuring an unlocked GPU"
+            );
             return HashMap::new();
         }
 
