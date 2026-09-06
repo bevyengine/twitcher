@@ -63,6 +63,15 @@ cd bevy
 git remote add origin git@github.com:bevyengine/bevy.git
 git fetch -q --depth 1 origin "$gitref"
 git checkout -q --detach FETCH_HEAD
+want_wb=$(cargo metadata --format-version 1 2>/dev/null \
+    | jq -r '[.packages[] | select(.name=="wasm-bindgen") | .version] | first // empty')
+have_wb=$(wasm-bindgen --version 2>/dev/null | awk '{print $2}')
+if [ -z "$want_wb" ]; then
+    echo "warning: could not resolve the wasm-bindgen version; wasm size metrics may be skipped" >&2
+elif [ "$want_wb" != "$have_wb" ]; then
+    echo "wasm-bindgen-cli: have '${have_wb:-none}', need '$want_wb' - installing" >&2
+    cargo install wasm-bindgen-cli --version "$want_wb"
+fi
 ../target/release/collect --suites "$run_suites_csv" all
 cd ..
 
