@@ -32,7 +32,12 @@ pub fn find_stats_files(root: &Path) -> Vec<PathBuf> {
     let mut files = Vec::new();
     if let Ok(entries) = fs::read_dir(root) {
         for entry in entries.flatten() {
-            if entry.file_type().unwrap().is_file() && entry.file_name() == "stats.json" {
+            let name = entry.file_name();
+            let name = name.to_string_lossy();
+            if entry.file_type().unwrap().is_file()
+                && name.starts_with("stats")
+                && name.ends_with(".json")
+            {
                 files.push(entry.path());
             }
             if entry.file_type().unwrap().is_dir() {
