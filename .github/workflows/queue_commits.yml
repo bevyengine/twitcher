@@ -5,6 +5,9 @@ on:
   schedule:
     - cron: "0 * * * *"
 
+env:
+  SUITES: "build benches rendering"
+
 jobs:
   queue-latest-commit:
     name: Queue Latest Commit
@@ -28,22 +31,26 @@ jobs:
       - name: Queue latest commit
         id: queue
         run: |
-          gitref=`git rev-parse HEAD`
-          if ls queue/$gitref 1> /dev/null 2>&1
-          then
-            echo "commit already queued"
-            echo "ADDED=0" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-          if find results/ | grep $gitref 1> /dev/null 2>&1
-          then
-            echo "commit already collected"
-            echo "ADDED=0" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-          cd queue
-          touch $gitref
-          echo "ADDED=1" >> "$GITHUB_OUTPUT"
+          set -euo pipefail
+          gitref=$(git rev-parse HEAD)
+          added=0
+          for suite in $SUITES; do
+            # Already waiting for this suite?
+            if [ -e "queue/$suite/$gitref" ]; then
+              echo "$suite: already queued"
+              continue
+            fi
+            dir="results/${gitref:0:1}/${gitref:1:1}/$gitref"
+            if [ -f "$dir/stats.$suite.json" ] || [ -f "$dir/stats.json" ]; then
+              echo "$suite: already collected"
+              continue
+            fi
+            mkdir -p "queue/$suite"
+            touch "queue/$suite/$gitref"
+            echo "$suite: queued $gitref"
+            added=$((added + 1))
+          done
+          echo "ADDED=$added" >> "$GITHUB_OUTPUT"
       - name: Commit
         if: steps.queue.outputs.ADDED > 0
         run: |
@@ -52,34 +59,12 @@ jobs:
           git config user.email '<>'
 
           git add .
-          git commit -m "Queued new commit"
+          git commit -m "Queued new commit for ${{ steps.queue.outputs.ADDED }} suite(s)"
           git push
 
-  check-queue:
-    name: Check Queue
-    runs-on: ubuntu-latest
-    needs: [queue-latest-commit]
-    outputs:
-      queue_is_empty: ${{ steps.check_queue.outputs.QUEUE_IS_EMPTY }}
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: "queue"
-      - name: Check if queue is empty
-        id: check_queue
-        run: |
-          if [ `ls -1 | wc -l` -eq 0 ]; then
-            echo "Queue is empty"
-            echo "QUEUE_IS_EMPTY=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "Queue is not empty"
-            echo "QUEUE_IS_EMPTY=false" >> "$GITHUB_OUTPUT"
-          fi
-
   queue-history-commits:
-    needs: [check-queue]
-    if: needs.check-queue.outputs.queue_is_empty == 'true'
-    name: Queue History Commits
+    needs: [queue-latest-commit]
+    name: Backfill History Per Suite
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -99,29 +84,44 @@ jobs:
         with:
           ref: "results"
           path: "results"
-      - name: Queue history commits
+      - name: Backfill each idle suite
         id: queue
         run: |
-          cd bevy
-          i=0
-          j=0
+          set -euo pipefail
           max=3
-          for commit in `git log --no-abbrev-commit --pretty=oneline | sort | cut -d ' ' -f 1`
-          do
-              if find ../results/ | grep $commit 1> /dev/null 2>&1
-              then
-                  :
-              else
-                  j=$((j + 1))
-                  if [ $i -lt $max ]; then
-                      i=$((i + 1))
-                      touch ../queue/$commit
-                  fi
-                fi
+          added=0
+          summary=""
+
+          commits=$(cd bevy && git log --no-abbrev-commit --pretty=format:%H | sort)
+
+          for suite in $SUITES; do
+            pending=$(find "queue/$suite" -maxdepth 1 -type f 2>/dev/null | wc -l)
+            if [ "$pending" -gt 0 ]; then
+              echo "$suite: $pending still queued, not backfilling"
+              continue
+            fi
+
+            i=0
+            missing=0
+            for commit in $commits; do
+              dir="results/${commit:0:1}/${commit:1:1}/$commit"
+              if [ -f "$dir/stats.$suite.json" ] || [ -f "$dir/stats.json" ]; then
+                continue
+              fi
+              missing=$((missing + 1))
+              if [ "$i" -lt "$max" ]; then
+                mkdir -p "queue/$suite"
+                touch "queue/$suite/$commit"
+                i=$((i + 1))
+              fi
+            done
+            echo "$suite: queued $i of $missing missing commits"
+            added=$((added + i))
+            [ "$i" -gt 0 ] && summary="$summary $suite=$i/$missing"
           done
-          echo "Added $i commits out of $j missing commits"
-          echo "ADDED=$i" >> "$GITHUB_OUTPUT"
-          echo "TOTAL=$j" >> "$GITHUB_OUTPUT"
+
+          echo "ADDED=$added" >> "$GITHUB_OUTPUT"
+          echo "SUMMARY=$summary" >> "$GITHUB_OUTPUT"
       - name: Commit
         if: steps.queue.outputs.ADDED > 0
         run: |
@@ -130,5 +130,5 @@ jobs:
           git config user.email '<>'
 
           git add .
-          git commit -m "Queued ${{ steps.queue.outputs.ADDED }} / ${{ steps.queue.outputs.TOTAL }} history commits"
+          git commit -m "Backfilled history commits:${{ steps.queue.outputs.SUMMARY }}"
           git push
