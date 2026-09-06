@@ -34,7 +34,7 @@ git pull
 
 cargo build --release --bin collect
 
-git clone -b queue git@github.com:bevyengine/twitcher.git queue
+git clone --depth 1 --single-branch -b queue git@github.com:bevyengine/twitcher.git queue
 gitref=$(
     for suite in $suites; do
         [ -d "queue/$suite" ] || continue
@@ -58,13 +58,15 @@ for suite in $suites; do
 done
 run_suites_csv=$(echo "$run_suites" | tr ' ' ',')
 
-git clone git@github.com:bevyengine/bevy.git
+git init -q bevy
 cd bevy
-git reset --hard "$gitref"
+git remote add origin git@github.com:bevyengine/bevy.git
+git fetch -q --depth 1 origin "$gitref"
+git checkout -q --detach FETCH_HEAD
 ../target/release/collect --suites "$run_suites_csv" all
 cd ..
 
-git clone -b results git@github.com:bevyengine/twitcher.git results
+git clone --depth 1 --single-branch -b results git@github.com:bevyengine/twitcher.git results
 cp -r bevy/results/* results
 cd results
 git add .
@@ -73,7 +75,8 @@ git push
 cd ..
 
 cd queue
-git pull
+git fetch -q --depth 1 origin queue
+git reset -q --hard FETCH_HEAD
 for suite in $run_suites; do
     rm -f "$suite/$gitref"
 done
