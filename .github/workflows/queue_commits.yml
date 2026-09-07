@@ -3,7 +3,7 @@ name: Queue Commits From Bevy Main
 on:
   workflow_dispatch:
   schedule:
-    - cron: "0 * * * *"
+    - cron: "7,27,47 * * * *"
 
 env:
   SUITES: "build benches rendering"
