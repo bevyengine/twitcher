@@ -36,14 +36,18 @@ cargo build --release --bin collect
 
 rm -rf queue results bevy
 
-git clone --depth 1 --single-branch -b queue git@github.com:bevyengine/twitcher.git queue
+git clone --single-branch -b queue git@github.com:bevyengine/twitcher.git queue
 gitref=$(
-    for suite in $suites; do
-        [ -d "queue/$suite" ] || continue
-        for entry in "queue/$suite"/*; do
-            [ -f "$entry" ] && basename "$entry"
+    git -C queue log --diff-filter=A --name-only --pretty=format: -- $suites \
+    | sed -n 's#^[^/]*/##p' \
+    | awk '!seen[$0]++' \
+    | while read -r sha; do
+        n=0
+        for suite in $suites; do
+            [ -f "queue/$suite/$sha" ] && n=$((n + 1))
         done
-    done | sort | uniq -c | sort -k1,1rn -k2,2 | head -n 1 | awk '{print $2}'
+        [ "$n" -gt 0 ] && echo "$n $sha"
+      done | sort -s -k1,1rn | head -n 1 | awk '{print $2}'
 )
 
 if [ -z "$gitref" ]; then
