@@ -58,6 +58,13 @@ pub(crate) fn parse_mangohud_csv(path: &std::path::Path) -> Vec<MangohudSample> 
         .collect()
 }
 
+pub(crate) fn run_timeout_secs(default: u64) -> u64 {
+    std::env::var("TWITCHER_RUN_TIMEOUT_SECS")
+        .ok()
+        .and_then(|v| v.parse().ok())
+        .unwrap_or(default)
+}
+
 pub mod benchmarks;
 pub mod binary_size;
 pub mod compile_time;

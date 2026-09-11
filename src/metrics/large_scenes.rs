@@ -10,6 +10,8 @@ use xshell::{Shell, cmd};
 
 use crate::Metrics;
 
+const RUN_TIMEOUT_SECS: u64 = 7200;
+
 #[derive(Debug)]
 pub struct LargeScene {
     pub scene: String,
@@ -153,21 +155,29 @@ impl Metrics for LargeScene {
 
         let _scale_guard = sh.push_env("WINIT_X11_SCALE_FACTOR", "1");
 
+        let timeout = super::run_timeout_secs(RUN_TIMEOUT_SECS).to_string();
         let cmd = cmd!(
             sh,
-            "mangohud cargo run --release {features...} --package {scene} -- {parameters...}"
+            "timeout --kill-after=30s {timeout} mangohud cargo run --release {features...} --package {scene} -- {parameters...}"
         );
         let mut results = HashMap::new();
 
         let start = Instant::now();
         let cmd_result = cmd.run();
 
+        if cmd_result.is_err() {
+            let pattern = format!("target/release/{scene}");
+            let _ = cmd!(sh, "pkill -9 -f {pattern}").run();
+        }
+
         let _ = cmd!(sh, "sudo systemctl stop lightdm").run();
         thread::sleep(Duration::from_secs(5));
         let _ = cmd!(sh, "sudo /usr/local/sbin/pin.sh unlock").run();
 
-        if cmd_result.is_err() {
-            // ignore failure due to a missing scene
+        if let Err(err) = cmd_result {
+            eprintln!(
+                "{key}: large scene run failed or exceeded its run cap, no metrics recorded: {err}"
+            );
             return results;
         };
         let elapsed = start.elapsed();
