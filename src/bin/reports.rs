@@ -15,8 +15,6 @@ use twitcher::{
     stats::{Stats, find_stats_files},
 };
 
-const DATE_LIMIT: chrono::Duration = chrono::Duration::weeks(26);
-
 #[derive(Serialize)]
 struct Commit {
     id: String,
@@ -35,7 +33,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .map(|id| format!(".{id}"))
         .unwrap_or("".to_string());
 
-    let stats: Vec<Stats> = find_stats_files(Path::new("results"))
+    let mut stats: Vec<Stats> = find_stats_files(Path::new("results"))
         .iter()
         .map(|path| {
             let file = File::open(path).unwrap();
@@ -54,7 +52,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     revwalk.push_head().unwrap();
     let commits = revwalk
         .filter_map(|c| repo.find_commit(*c.as_ref().unwrap()).ok())
-        .take(5000)
         .map(|commit| {
             let (summary, pr) =
                 if let Some(captures) = summary_regex.captures(commit.summary().unwrap()) {
@@ -74,16 +71,20 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 done: false,
             }
         })
-        .filter(|commit| {
-            (chrono::Utc::now()
-                - chrono::DateTime::from_timestamp_millis(commit.timestamp * 1000).unwrap())
-                <= DATE_LIMIT
-        })
         .map(|mut commit| {
             commit.done = stats.iter().any(|s| commit.id == s.commit);
             commit
         })
         .collect::<Vec<_>>();
+
+    // Only report on the bevy history that is available
+    let start = commits
+        .iter()
+        .map(|c| c.timestamp)
+        .min()
+        .unwrap_or_default()
+        * 1000;
+    stats.retain(|stat| stat.commit_timestamp >= start as u128);
 
     let crate_names = setup_compile_stats(&stats, &cache_id);
     let stress_tests = setup_runtime("stress-test-fps", &stats, &cache_id);
@@ -124,10 +125,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     context.insert("commits", &commits);
     context.insert("stress_tests", &stress_tests_alpha);
     context.insert("benchmarks", &benchmarks_alpha);
-    context.insert(
-        "start",
-        &((chrono::Utc::now() - DATE_LIMIT).timestamp() * 1000),
-    );
+    context.insert("start", &start);
     context.insert("end", &(chrono::Utc::now().timestamp() * 1000));
     context.insert(
         "threemonthsago",
@@ -206,12 +204,6 @@ fn setup_compile_stats<'a>(stats: &'a [Stats], cache_id: &str) -> Vec<&'a str> {
     compilation_keys.into_iter().for_each(|metric| {
         let values = stats
             .iter()
-            .filter(|stat| {
-                (chrono::Utc::now()
-                    - chrono::DateTime::from_timestamp_millis(stat.commit_timestamp as i64)
-                        .unwrap())
-                    <= DATE_LIMIT
-            })
             .flat_map(|stat| {
                 stat.metrics.get(metric).map(|value| DataPoint {
                     timestamp: stat.commit_timestamp,
@@ -267,15 +259,6 @@ fn setup_runtime(kind: &str, stats: &[Stats], cache_id: &str) -> Vec<(String, f6
         .flat_map(|stress_test| {
             let values = stats
                 .iter()
-                .filter(|stat| {
-                    (chrono::Utc::now()
-                        - chrono::DateTime::from_timestamp_millis(stat.commit_timestamp as i64)
-                            .unwrap())
-                        <= DATE_LIMIT
-                        && chrono::DateTime::from_timestamp_millis(stat.commit_timestamp as i64)
-                            .unwrap()
-                            > chrono::DateTime::parse_from_rfc3339("2026-03-30T12:00:00Z").unwrap() // Data before this date is not with the same format
-                })
                 .flat_map(|stat| {
                     stat.metrics
                         .get(&format!(
@@ -380,12 +363,6 @@ fn setup_benchmarks(stats: &[Stats], cache_id: &str) -> Vec<(String, f64)> {
         .flat_map(|(benchmark, safe_name)| {
             let values = stats
                 .iter()
-                .filter(|stat| {
-                    (chrono::Utc::now()
-                        - chrono::DateTime::from_timestamp_millis(stat.commit_timestamp as i64)
-                            .unwrap())
-                        <= DATE_LIMIT
-                })
                 .flat_map(|stat| {
                     stat.metrics
                         .get(&format!("benchmarks.{benchmark}.mean"))

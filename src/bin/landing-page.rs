@@ -110,7 +110,7 @@ fn main() {
     revwalk.push_head().unwrap();
     let mut commits = revwalk
         .filter_map(|c| repo.find_commit(*c.as_ref().unwrap()).ok())
-        .take(500)
+        .take(1000)
         .flat_map(|commit| {
             let captures = summary_regex.captures(commit.summary().unwrap())?;
             let id = commit.id().to_string();
