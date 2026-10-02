@@ -45,7 +45,7 @@ jobs:
           repository: "bevyengine/bevy"
           ref: "main"
           path: "bevy"
-          fetch-depth: 2000
+          fetch-depth: 1000
       - uses: Swatinem/rust-cache@v2
       - name: Build Reports
         run: |
