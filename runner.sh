@@ -78,6 +78,17 @@ elif [ "$want_wb" != "$have_wb" ]; then
     echo "wasm-bindgen-cli: have '${have_wb:-none}', need '$want_wb' - installing" >&2
     cargo install wasm-bindgen-cli --version "$want_wb"
 fi
+# use Bevy msrv
+# previous results were built with 1.98.1, so use msrv only if its more recent
+msrv_min="1.99"
+msrv=$(cargo metadata --no-deps --format-version 1 2>/dev/null \
+    | jq -r '.packages[] | select(.name=="bevy") | .rust_version // empty')
+if [ "$(printf '%s\n%s\n' "$msrv_min" "$msrv" | sort -V | head -n 1)" != "$msrv_min" ]; then
+    echo "bevy MSRV $msrv is below $msrv_min, using default toolchain" >&2
+else
+    rustup toolchain install "$msrv" --profile minimal --target wasm32-unknown-unknown
+    export RUSTUP_TOOLCHAIN="$msrv"
+fi
 ../target/release/collect --suites "$run_suites_csv" all
 cd ..
 
