@@ -84,6 +84,9 @@ jobs:
         with:
           ref: "results"
           path: "results"
+      - uses: actions/checkout@v4
+        with:
+          path: "twitcher"
       - name: Backfill each idle suite
         id: queue
         run: |
@@ -94,11 +97,31 @@ jobs:
 
           commits=$(cd bevy && git log --no-abbrev-commit --pretty=format:%H | sort)
 
+          busy=""
+          owners=0
+          for machine in twitcher/machines/*.toml; do
+            owners=$((owners + 1))
+            owned=$(sed -n 's/^suites *= *\[\(.*\)\].*/\1/p' "$machine" | tr -d '" ' | tr ',' ' ')
+            pending=""
+            for suite in $owned; do
+              [ -d "queue/$suite" ] && pending="${pending:+$pending }$suite"
+            done
+            if [ -n "$pending" ]; then
+              echo "$(basename "$machine" .toml): queued work in $pending, holding back: $owned"
+              busy="${busy:+$busy }$owned"
+            fi
+          done
           for suite in $SUITES; do
             if [ -d "queue/$suite" ]; then
               echo "$suite: still queued, not backfilling"
               continue
             fi
+            case " $busy " in
+              *" $suite "*)
+                echo "$suite: idle, but its machine has queued work, not backfilling"
+                continue
+                ;;
+            esac
 
             i=0
             missing=0
